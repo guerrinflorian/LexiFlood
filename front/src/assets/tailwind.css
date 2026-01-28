@@ -25,14 +25,18 @@
 }
 
 html,
-body,
-#app {
+body {
   height: 100%;
+}
+
+#app {
+  min-height: 100%;
 }
 
 body {
   @apply bg-slate-950 text-slate-100;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .lexi-dialog .q-card {
