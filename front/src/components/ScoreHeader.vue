@@ -1,55 +1,58 @@
 <template>
-  <div class="relative flex h-12 items-center gap-2 p-2 md:h-14 md:p-3">
-    <!-- Section gauche : Bouton Quitter + Score -->
-    <div class="flex items-center gap-3 flex-shrink-0">
+  <div class="relative flex h-16 items-center justify-between gap-4 border-b border-slate-800/50 bg-slate-950/50 px-4 backdrop-blur-md">
+    <!-- Left Group: Quit + Info -->
+    <div class="flex items-center gap-4">
       <q-btn
-        outline
-        rounded
-        color="accent"
-        class="px-3 py-1.5 text-sm font-semibold md:px-5 md:py-2"
-        label="Quitter"
+        flat
+        round
+        dense
+        color="secondary"
         icon="logout"
-        size="sm"
         @click="$emit('quit')"
-      />
-      
-      <!-- Cercle de score collé à droite du bouton -->
-      <div class="score-circle">
-        <span class="score-label">Score</span>
-        <span class="score-value">{{ score }}</span>
+      >
+        <q-tooltip>Quitter</q-tooltip>
+      </q-btn>
+
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/30 px-3 py-1 text-xs">
+          <span class="relative flex h-2 w-2">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+          </span>
+          <span class="font-semibold text-emerald-100 hidden sm:inline">Partie en cours</span>
+        </div>
       </div>
     </div>
 
-    <!-- Badges info au centre - avec min-width 0 pour permettre le shrink -->
-    <div class="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-2">
-      <!-- Statut en cours -->
-      <div class="flex flex-shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/30 bg-gradient-to-br from-emerald-900/25 to-emerald-950/20 px-3 py-1.5 text-xs">
-        <span class="relative flex h-2 w-2">
-          <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-          <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-        </span>
-        <span class="font-semibold text-emerald-100">Partie en cours</span>
-      </div>
-
-      <!-- Progress bar - prend l'espace disponible mais ne dépasse pas -->
-      <transition name="progress-expand">
-        <div
-          v-if="overflowCountdown !== null"
-          class="progress-container flex h-7 min-w-0 flex-1 items-center gap-2 rounded-full border border-amber-500/50 bg-gradient-to-r from-orange-900/30 to-orange-950/20 px-3 py-1.5 backdrop-blur"
-        >
-          <span class="flex-shrink-0 text-lg">⚠️</span>
-          <span class="flex-shrink-0 text-xs font-bold tabular-nums text-amber-100">{{ displayCountdown }}s</span>
-          <div class="min-w-0 flex-1">
-            <q-linear-progress
-              rounded
-              size="6px"
-              color="warning"
-              track-color="orange-900"
-              :value="overflowProgress"
-            />
-          </div>
+    <!-- Center: Progress Bar (Overflow) -->
+    <div class="flex flex-1 items-center justify-center px-4">
+      <transition name="fade">
+        <div v-if="overflowCountdown !== null" class="w-full max-w-md flex items-center gap-3 rounded-full border border-amber-500/30 bg-amber-950/20 px-3 py-1">
+          <span class="text-xs font-bold text-amber-200 whitespace-nowrap">⚠️ {{ displayCountdown }}s</span>
+          <q-linear-progress
+            rounded
+            size="8px"
+            color="warning"
+            track-color="orange-900"
+            :value="overflowProgress"
+            class="w-full"
+          />
         </div>
       </transition>
+    </div>
+
+    <!-- Right: Score + Time -->
+    <div class="flex flex-col items-end">
+      <div class="flex items-center gap-3">
+        <div class="flex flex-col items-end">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Temps</span>
+          <span class="text-sm font-bold text-slate-300">{{ elapsedTimeFormatted }}</span>
+        </div>
+        <div class="flex flex-col items-end">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Score</span>
+          <span class="text-xl font-bold text-blue-400">{{ score }}</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -62,21 +65,21 @@ import { useGameStore } from '../stores/useGameStore';
 defineEmits<{ (event: 'quit'): void }>();
 
 const store = useGameStore();
-const { score, overflowCountdown } = storeToRefs(store);
+const { score, overflowCountdown, elapsedTimeFormatted } = storeToRefs(store);
 
 const displayCountdown = computed(() => {
   if (overflowCountdown.value === null) {
     return 0;
   }
-  return Math.max(0, overflowCountdown.value - 1);
+  return overflowCountdown.value;
 });
 
 const overflowProgress = computed(() => {
   if (overflowCountdown.value === null) {
     return 0;
   }
-  // Utilise displayCountdown au lieu de overflowCountdown pour la progress bar
-  return Math.min(1, Math.max(0, displayCountdown.value / 5));
+  // Progress starts full (1.0) and decreases to 0
+  return overflowCountdown.value / 5;
 });
 </script>
 

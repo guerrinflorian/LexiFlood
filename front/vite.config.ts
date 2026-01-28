@@ -7,5 +7,17 @@ export default defineConfig({
     port: 5173,
     host: true,
     allowedHosts: true
+  },
+  css: {
+    preprocessorOptions: {
+      sass: {
+        api: 'modern-compiler',
+        silenceDeprecations: ['legacy-js-api', 'import', 'global-builtin'],
+      },
+      scss: {
+        api: 'modern-compiler',
+        silenceDeprecations: ['legacy-js-api', 'import', 'global-builtin'],
+      }
+    }
   }
 });

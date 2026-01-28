@@ -1,38 +1,30 @@
 <template>
-  <section class="flex h-full flex-col gap-3 rounded-2xl border border-slate-800/60 bg-slate-900/70 p-4 shadow-lg backdrop-blur">
-    <header class="flex items-center justify-between">
-      <div>
-        <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Classement</p>
-        <p class="text-xs text-slate-500">Round {{ roundIndex + 1 }} / {{ totalRounds }}</p>
-      </div>
-      <div class="rounded-full border border-slate-700/70 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200">
-        {{ formattedTimeLeft }}
-      </div>
+  <section class="flex h-full flex-col gap-2 rounded-2xl border border-slate-800/60 bg-slate-900/70 p-3 shadow-lg backdrop-blur">
+    <header class="flex items-center justify-between pb-2">
+      <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Classement</p>
+      <div class="text-[10px] font-bold text-slate-500">{{ targetQualified }} qualifiés</div>
     </header>
 
-    <ul class="scrollbar-thin scrollbar-track-slate-900/30 scrollbar-thumb-slate-600/40 flex-1 space-y-2 overflow-y-auto pr-1">
+    <ul class="scrollbar-thin scrollbar-track-slate-900/30 scrollbar-thumb-slate-600/40 flex-1 space-y-1 overflow-y-auto pr-1">
       <li
         v-for="player in scoreboard"
         :key="player.id"
-        class="flex items-center justify-between rounded-xl border border-slate-800/60 bg-slate-950/60 px-3 py-2 text-sm"
-        :class="{
-          'border-cyan-400/70 bg-cyan-500/10 text-cyan-200': player.id === playerId,
-          'opacity-60': player.eliminated
-        }"
+        class="flex items-center justify-between rounded-lg border px-2 py-1.5 text-xs transition-colors"
+        :class="getRowClasses(player)"
       >
         <div class="flex items-center gap-2">
-          <span class="text-xs font-bold text-slate-400">#{{ player.position }}</span>
-          <div>
-            <p class="font-semibold text-slate-100">{{ player.name }}</p>
-            <p class="text-[10px] text-slate-500">
-              <span v-if="player.ko" class="text-rose-300">KO</span>
-              <span v-else-if="player.eliminated" class="text-amber-300">Éliminé</span>
-              <span v-else-if="!player.connected" class="text-slate-500">Déconnecté</span>
-              <span v-else class="text-emerald-300">En jeu</span>
-            </p>
+          <span class="w-4 text-center font-bold text-slate-500">#{{ player.position }}</span>
+          <div class="flex flex-col">
+            <span class="font-bold leading-tight" :class="player.id === playerId ? 'text-white' : 'text-slate-200'">{{ player.name }}</span>
+            <span class="text-[9px] leading-tight text-slate-400">
+              <span v-if="player.ko" class="font-bold text-rose-400">KO</span>
+              <span v-else-if="player.eliminated" class="text-amber-400">Éliminé</span>
+              <span v-else-if="!player.connected" class="text-slate-600">Déconnecté</span>
+              <span v-else class="text-emerald-400/80">En jeu</span>
+            </span>
           </div>
         </div>
-        <span class="font-bold text-emerald-300">{{ player.score }} pts</span>
+        <span class="font-mono font-bold text-emerald-300">{{ player.score }}</span>
       </li>
     </ul>
   </section>
@@ -55,7 +47,14 @@ const props = defineProps<{
   roundIndex: number;
   totalRounds: number;
   timeLeftMs: number;
+  durationMs: number;
+  targetQualified: number;
 }>();
+
+const timeProgress = computed(() => {
+  if (!props.durationMs) return 0;
+  return Math.min(Math.max(props.timeLeftMs / props.durationMs, 0), 1);
+});
 
 const formattedTimeLeft = computed(() => {
   const totalSeconds = Math.max(Math.ceil(props.timeLeftMs / 1000), 0);
@@ -63,6 +62,34 @@ const formattedTimeLeft = computed(() => {
   const seconds = String(totalSeconds % 60).padStart(2, '0');
   return `${minutes}:${seconds}`;
 });
+
+const getRowClasses = (player: typeof props.scoreboard[0]) => {
+  const classes = [];
+  
+  if (player.eliminated) {
+    classes.push('border-slate-800/40 bg-slate-900/40 opacity-50');
+  } else if (player.ko) {
+     classes.push('border-rose-900/30 bg-rose-950/30');
+  } else {
+    // Qualification check: Position <= targetQualified
+    const isQualified = (player.position ?? 999) <= props.targetQualified;
+    
+    if (player.id === props.playerId) {
+       // Self
+       classes.push('border-cyan-500/50 bg-cyan-500/20');
+       if (isQualified) classes.push('shadow-[inset_0_0_10px_rgba(16,185,129,0.1)]');
+    } else if (isQualified) {
+       // Other Qualified
+       classes.push('border-emerald-500/30 bg-emerald-500/10');
+    } else {
+       // Other Not Qualified
+       classes.push('border-slate-800/60 bg-slate-950/60');
+    }
+  }
+
+  return classes.join(' ');
+};
+
 </script>
 
 <style scoped>

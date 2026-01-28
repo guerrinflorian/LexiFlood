@@ -194,7 +194,7 @@ const createLetterGenerator = () => {
 const generateRoomCode = () => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
-  for (let index = 0; index < 6; index += 1) {
+  for (let index = 0; index < 4; index += 1) {
     code += chars[Math.floor(Math.random() * chars.length)];
   }
   return code;
@@ -206,7 +206,6 @@ type Player = {
   id: string;
   token: string;
   name: string;
-  ready: boolean;
   score: number;
   ko: boolean;
   eliminated: boolean;
@@ -286,7 +285,6 @@ const emitRoomState = (io: Server, room: Room) => {
     players: getRoomPlayers(room).map((player) => ({
       id: player.id,
       name: player.name,
-      ready: player.ready,
       score: player.score,
       ko: player.ko,
       eliminated: player.eliminated,
@@ -324,7 +322,6 @@ const startRound = (io: Server, room: Room) => {
   activePlayers.forEach((player) => {
     player.score = 0;
     player.ko = false;
-    player.ready = false;
     player.usedWords = new Set();
   });
 
@@ -341,9 +338,12 @@ const startRound = (io: Server, room: Room) => {
 
   room.roundStartAt = Date.now() + 1000;
 
+  const targetQualified = room.rounds[room.roundIndex] ?? 1; // Default to 1 (winner) if index out of bounds
+
   io.to(room.code).emit('game:round:start', {
     roundIndex: room.roundIndex,
     totalRounds: room.rounds.length,
+    targetQualified,
     roundStartAt: room.roundStartAt,
     durationMs: room.durationMs,
     letterIntervalMs: room.letterIntervalMs,
@@ -381,6 +381,28 @@ const finishRound = (io: Server, room: Room) => {
 
   const targetRemaining = room.rounds[room.roundIndex];
   const sorted = getSortedPlayers(room).filter((player) => !player.eliminated);
+
+  // Check if only one connected player remains during the game
+  const connectedActivePlayers = sorted.filter((player) => player.connected);
+  if (connectedActivePlayers.length <= 1) {
+    // Force finish the game if only one player remains
+    room.status = 'finished';
+    const scoreboard = formatScoreboard(room);
+    io.to(room.code).emit('game:end', {
+      scoreboard,
+      winnerId: connectedActivePlayers[0]?.id ?? scoreboard[0]?.id ?? null
+    });
+    if (room.letterTimer) {
+      clearInterval(room.letterTimer);
+      room.letterTimer = null;
+    }
+    if (room.roundTimer) {
+      clearTimeout(room.roundTimer);
+      room.roundTimer = null;
+    }
+    return;
+  }
+
   const qualifiers = sorted.slice(0, targetRemaining);
   const eliminated = sorted.slice(targetRemaining);
 
@@ -428,6 +450,7 @@ const sendSnapshot = (socket: Socket, room: Room) => {
     status: room.status,
     roundIndex: room.roundIndex,
     totalRounds: room.rounds.length,
+    targetQualified: room.rounds[room.roundIndex] ?? 1,
     roundStartAt: room.roundStartAt,
     durationMs: room.durationMs,
     letterIntervalMs: room.letterIntervalMs,
@@ -436,6 +459,32 @@ const sendSnapshot = (socket: Socket, room: Room) => {
     scoreboard,
     winnerId: room.status === 'finished' ? scoreboard[0]?.id ?? null : null
   });
+};
+
+const checkAndHandleGameEnd = (io: Server, room: Room) => {
+  if (room.status !== 'inRound' && room.status !== 'roundEnd') {
+    return;
+  }
+
+  const connectedActivePlayers = getRoomPlayers(room)
+    .filter((p) => !p.eliminated && p.connected);
+
+  if (connectedActivePlayers.length <= 1) {
+    if (room.letterTimer) {
+      clearInterval(room.letterTimer);
+      room.letterTimer = null;
+    }
+    if (room.roundTimer) {
+      clearTimeout(room.roundTimer);
+      room.roundTimer = null;
+    }
+    room.status = 'finished';
+    const scoreboard = formatScoreboard(room);
+    io.to(room.code).emit('game:end', {
+      scoreboard,
+      winnerId: connectedActivePlayers[0]?.id ?? scoreboard[0]?.id ?? null
+    });
+  }
 };
 
 export const registerMultiplayer = (io: Server) => {
@@ -447,7 +496,6 @@ export const registerMultiplayer = (io: Server) => {
         id: socket.id,
         token,
         name: name?.trim() || 'LexiHero',
-        ready: false,
         score: 0,
         ko: false,
         eliminated: false,
@@ -496,25 +544,24 @@ export const registerMultiplayer = (io: Server) => {
         return;
       }
 
-    if (existingPlayer) {
-      const previousId = existingPlayer.id;
-      room.players.delete(previousId);
-      existingPlayer.id = socket.id;
-      existingPlayer.connected = true;
-      if (name) {
-        existingPlayer.name = name.trim();
-      }
-      room.players.set(socket.id, existingPlayer);
-      if (room.hostId === previousId) {
-        room.hostId = socket.id;
-      }
-    } else {
+      if (existingPlayer) {
+        const previousId = existingPlayer.id;
+        room.players.delete(previousId);
+        existingPlayer.id = socket.id;
+        existingPlayer.connected = true;
+        if (name) {
+          existingPlayer.name = name.trim();
+        }
+        room.players.set(socket.id, existingPlayer);
+        if (room.hostId === previousId) {
+          room.hostId = socket.id;
+        }
+      } else {
         const newToken = generateToken();
         const player: Player = {
           id: socket.id,
           token: newToken,
           name: name?.trim() || 'LexiHero',
-          ready: false,
           score: 0,
           ko: false,
           eliminated: false,
@@ -554,19 +601,13 @@ export const registerMultiplayer = (io: Server) => {
         rooms.delete(room.code);
         return;
       }
+
+      checkAndHandleGameEnd(io, room);
+
       emitRoomState(io, room);
       emitScoreboard(io, room);
     });
 
-    socket.on('player:ready', ({ ready }: { ready: boolean }) => {
-      const room = Array.from(rooms.values()).find((item) => item.players.has(socket.id));
-      const player = room?.players.get(socket.id);
-      if (!room || !player) {
-        return;
-      }
-      player.ready = ready;
-      emitRoomState(io, room);
-    });
 
     socket.on('game:start', () => {
       const room = Array.from(rooms.values()).find((item) => item.players.has(socket.id));
@@ -588,7 +629,6 @@ export const registerMultiplayer = (io: Server) => {
         player.eliminated = false;
         player.ko = false;
         player.score = 0;
-        player.ready = false;
         player.usedWords = new Set();
       });
       startRound(io, room);
@@ -636,6 +676,10 @@ export const registerMultiplayer = (io: Server) => {
         return;
       }
       player.ko = true;
+      player.eliminated = true; // KO implies elimination
+
+      checkAndHandleGameEnd(io, room);
+
       emitScoreboard(io, room);
       emitRoomState(io, room);
     });
@@ -651,6 +695,9 @@ export const registerMultiplayer = (io: Server) => {
         const nextHost = getRoomPlayers(room).find((item) => item.connected);
         room.hostId = nextHost?.id ?? room.hostId;
       }
+
+      checkAndHandleGameEnd(io, room);
+
       emitRoomState(io, room);
       emitScoreboard(io, room);
     });

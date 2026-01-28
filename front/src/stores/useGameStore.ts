@@ -147,6 +147,7 @@ const notifySuccess = (message: string) => {
 
 let spawnInterval: ReturnType<typeof setInterval> | null = null;
 let overflowInterval: ReturnType<typeof setInterval> | null = null;
+let timerInterval: ReturnType<typeof setInterval> | null = null;
 
 const getConsonantStreak = (letters: string[]) => {
   let streak = 0;
@@ -191,7 +192,9 @@ export const useGameStore = defineStore('game', {
       word: string;
       points: number;
       time: string;
-    }>
+    }>,
+    startTime: null as number | null,
+    now: Date.now()
   }),
   getters: {
     currentWord(state) {
@@ -216,6 +219,13 @@ export const useGameStore = defineStore('game', {
         return { status: 'invalid', label: 'Mot invalide', points: 0 };
       }
       return { status: 'valid', label: 'Mot valide', points };
+    },
+    elapsedTimeFormatted(state) {
+      if (!state.startTime) return '00:00';
+      const diff = Math.floor((state.now - state.startTime) / 1000);
+      const m = Math.floor(diff / 60).toString().padStart(2, '0');
+      const s = (diff % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
     }
   },
   actions: {
@@ -235,6 +245,7 @@ export const useGameStore = defineStore('game', {
       this.letterBag = [];
       this.lastSpawnedLetter = null;
       this.wordHistory = [];
+      this.startTime = null;
       if (spawnInterval) {
         clearInterval(spawnInterval);
         spawnInterval = null;
@@ -243,11 +254,19 @@ export const useGameStore = defineStore('game', {
         clearInterval(overflowInterval);
         overflowInterval = null;
       }
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
     },
     startSolo() {
       this.resetGame();
       this.refillLetterBag();
       this.seedInitialLetters();
+      this.startTime = Date.now();
+      timerInterval = setInterval(() => {
+        this.now = Date.now();
+      }, 1000);
       this.startSpawnLoop();
     },
     startSpawnLoop() {

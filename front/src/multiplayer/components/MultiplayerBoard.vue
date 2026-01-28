@@ -1,5 +1,9 @@
 <template>
   <div class="rack-wrapper">
+    <div v-if="hasOverflow" class="overflow-bar flex items-center justify-center">
+      <div class="absolute inset-0 bg-rose-600/20" :style="{ width: `${overflowProgress * 100}%`, transition: 'width 1s linear' }"></div>
+      <span class="relative z-10 text-xs font-bold uppercase tracking-widest text-rose-200">Surcharge imminent !</span>
+    </div>
     <div class="rack-shell">
       <div class="rack-grid">
         <LetterTile
@@ -19,21 +23,47 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
+import { computed } from 'vue';
 import { useMultiplayerStore } from '../useMultiplayerStore';
 import LetterTile from '../../components/LetterTile.vue';
 
 const store = useMultiplayerStore();
-const { slots, errorIndices, phase } = storeToRefs(store);
+const { slots, errorIndices, phase, overflowCountdown } = storeToRefs(store);
 const { toggleSelect } = store;
+
+const hasOverflow = computed(() => overflowCountdown.value !== null);
+const overflowProgress = computed(() => {
+  if (overflowCountdown.value === null) return 0;
+  return overflowCountdown.value / 5; // 5 seconds max
+});
 </script>
 
 <style scoped>
 .rack-wrapper {
   width: 100%;
   display: flex;
-  justify-content: center;
-  padding: 12px 16px 20px;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 20px;
   background: linear-gradient(180deg, rgba(5, 8, 18, 0) 0%, rgba(5, 8, 18, 0.7) 100%);
+}
+
+.overflow-bar {
+  width: min(600px, 100%);
+  height: 24px;
+  background: rgba(225, 29, 72, 0.2);
+  border: 1px solid rgba(225, 29, 72, 0.5);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 0 15px rgba(225, 29, 72, 0.3);
+  animation: pulse-red 1s infinite;
+}
+
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 15px rgba(225, 29, 72, 0.3); border-color: rgba(225, 29, 72, 0.5); }
+  50% { box-shadow: 0 0 25px rgba(225, 29, 72, 0.6); border-color: rgba(225, 29, 72, 0.8); }
 }
 
 .rack-shell {

@@ -8,19 +8,42 @@
     <div class="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-900/20 via-transparent to-transparent"></div>
     <div class="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-blue-900/10 via-transparent to-transparent"></div>
 
-    <header class="relative z-10 flex items-center justify-between px-4 py-4">
-      <div>
-        <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Multijoueur</p>
-        <p class="text-lg font-semibold text-white">Room {{ roomCode || '—' }}</p>
-      </div>
+    <header class="relative z-10 flex h-16 items-center gap-4 border-b border-slate-800/50 bg-slate-950/50 px-4 backdrop-blur-md">
       <q-btn
-        outline
-        rounded
+        flat
+        round
+        dense
         color="secondary"
         icon="logout"
-        label="Quitter"
         @click="confirmQuit"
-      />
+      >
+        <q-tooltip>Quitter</q-tooltip>
+      </q-btn>
+
+      <div class="flex flex-col">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Room {{ roomCode }}</span>
+        <span v-if="phase === 'inRound' || phase === 'roundEnd'" class="text-sm font-bold text-slate-200">
+          Round {{ roundIndex + 1 }}<span class="text-slate-500">/{{ totalRounds }}</span>
+        </span>
+        <span v-else class="text-sm font-bold text-slate-200">Lobby</span>
+      </div>
+
+      <div v-if="phase === 'inRound'" class="mx-2 flex flex-1 items-center">
+        <q-linear-progress
+          :value="timeProgress"
+          color="primary"
+          track-color="slate-800"
+          rounded
+          size="8px"
+          class="w-full"
+        />
+      </div>
+      <div v-else class="flex-1"></div>
+
+      <div v-if="phase === 'inRound' || phase === 'roundEnd'" class="flex flex-col items-end">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Mon Score</span>
+        <span class="text-xl font-bold text-emerald-400">{{ myScore }}</span>
+      </div>
     </header>
 
     <section v-if="phase === 'entry'" class="relative z-10 flex flex-1 items-center justify-center px-6">
@@ -44,7 +67,8 @@
             <input
               v-model="roomInput"
               type="text"
-              placeholder="Ex: X7M4P9"
+              maxlength="4"
+              placeholder="Ex: X7M4"
               class="w-full rounded-xl border border-slate-800 bg-slate-950/80 px-4 py-3 text-base text-white placeholder:text-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
             />
           </div>
@@ -75,20 +99,13 @@
             <h2 class="text-2xl font-bold text-white">Lobby</h2>
             <p class="text-sm text-slate-400">Code room : <span class="text-cyan-300">{{ roomCode }}</span></p>
           </div>
-          <q-btn
-            :outline="!isReady"
-            :unelevated="isReady"
-            color="primary"
-            :label="isReady ? 'Prêt !' : 'Je suis prêt'"
-            @click="handleReadyToggle"
-          />
         </div>
 
         <div class="grid gap-4 md:grid-cols-2">
           <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
             <p class="mb-3 text-xs uppercase tracking-[0.2em] text-slate-400">Joueurs</p>
             <ul class="space-y-2">
-              <li
+                <li
                 v-for="player in players"
                 :key="player.id"
                 class="flex items-center justify-between rounded-lg border border-slate-800/60 bg-slate-900/80 px-3 py-2"
@@ -100,12 +117,6 @@
                   </p>
                   <p class="text-[10px] text-slate-500">{{ player.connected ? 'Connecté' : 'Déconnecté' }}</p>
                 </div>
-                <span
-                  class="rounded-full px-2 py-1 text-[10px] font-bold"
-                  :class="player.ready ? 'bg-emerald-500/20 text-emerald-200' : 'bg-slate-700/40 text-slate-300'"
-                >
-                  {{ player.ready ? 'Prêt' : 'En attente' }}
-                </span>
               </li>
             </ul>
           </div>
@@ -130,13 +141,35 @@
     </section>
 
     <section v-else class="relative z-10 flex flex-1 flex-col gap-3 overflow-hidden px-3 pb-3 md:grid md:grid-cols-[300px_minmax(0,1fr)_300px] md:px-4 lg:grid-cols-[340px_minmax(0,1fr)_340px]">
-      <div class="min-h-0 md:col-start-1">
+      <!-- Mobile: Side-by-side scoreboard + history -->
+      <div class="flex max-h-[180px] gap-2 md:hidden">
+        <div class="min-w-0 flex-1">
+          <MultiplayerScoreboard
+            :scoreboard="scoreboard"
+            :player-id="playerId"
+            :round-index="roundIndex"
+            :total-rounds="totalRounds"
+            :time-left-ms="timeLeftMs"
+            :duration-ms="durationMs"
+            :target-qualified="targetQualified"
+            class="mobile-compact"
+          />
+        </div>
+        <div class="min-w-0 flex-1">
+          <MultiplayerWordHistory class="mobile-compact" />
+        </div>
+      </div>
+
+      <!-- Desktop: Scoreboard left column -->
+      <div class="min-h-0 max-md:hidden md:col-start-1 md:block">
         <MultiplayerScoreboard
           :scoreboard="scoreboard"
           :player-id="playerId"
           :round-index="roundIndex"
           :total-rounds="totalRounds"
           :time-left-ms="timeLeftMs"
+          :duration-ms="durationMs"
+          :target-qualified="targetQualified"
         />
       </div>
 
@@ -184,7 +217,8 @@
         </div>
       </div>
 
-      <div class="flex min-h-0 md:col-start-3 md:min-h-full">
+      <!-- Desktop: Word history right column -->
+      <div class="min-h-0 max-md:hidden md:col-start-3 md:flex md:min-h-full">
         <MultiplayerWordHistory />
       </div>
 
@@ -250,13 +284,15 @@ const {
   playerId,
   roundIndex,
   totalRounds,
+  targetQualified,
   timeLeftMs,
+  durationMs,
   currentWord,
   wordPreview,
   roundResult,
   finalResult
 } = storeToRefs(store);
-const { createRoom, joinRoom, toggleReady, startGame, submitWord, clearSelection, leaveRoom } = store;
+const { createRoom, joinRoom, startGame, submitWord, clearSelection, leaveRoom } = store;
 
 const pseudo = ref('');
 const roomInput = ref('');
@@ -275,7 +311,15 @@ const wordPreviewClasses = computed(() => {
   }
 });
 
-const isReady = computed(() => players.value.find((player) => player.id === playerId.value)?.ready ?? false);
+const myScore = computed(() => {
+  const me = scoreboard.value.find((p) => p.id === playerId.value);
+  return me?.score ?? 0;
+});
+
+const timeProgress = computed(() => {
+  if (!durationMs.value) return 0;
+  return Math.min(Math.max(timeLeftMs.value / durationMs.value, 0), 1);
+});
 
 const canStart = computed(() => {
   const connectedPlayers = players.value.filter((player) => player.connected);
@@ -294,19 +338,34 @@ const winnerName = computed(() => {
 });
 
 const handleCreate = () => {
+  if (!pseudo.value.trim()) {
+    $q.notify({
+      message: 'Veuillez entrer un pseudo.',
+      color: 'negative',
+      position: 'top',
+      timeout: 2000
+    });
+    return;
+  }
   createRoom(pseudo.value);
 };
 
 const handleJoin = () => {
+  if (!pseudo.value.trim()) {
+    $q.notify({
+      message: 'Veuillez entrer un pseudo.',
+      color: 'negative',
+      position: 'top',
+      timeout: 2000
+    });
+    return;
+  }
   if (!roomInput.value.trim()) {
     return;
   }
   joinRoom(roomInput.value, pseudo.value);
 };
 
-const handleReadyToggle = () => {
-  toggleReady(!isReady.value);
-};
 
 const confirmQuit = () => {
   if (phase.value === 'entry') {
@@ -319,8 +378,6 @@ const confirmQuit = () => {
     ok: { label: 'Quitter', color: 'negative', unelevated: true, rounded: true },
     cancel: { label: 'Rester', color: 'secondary', outline: true, rounded: true },
     dark: true,
-    noFocus: true,
-    noRefocus: true,
     class: 'lexi-dialog'
   }).onOk(() => {
     leaveRoom();
@@ -355,5 +412,48 @@ const confirmQuit = () => {
   box-shadow:
     0 8px 15px -1px rgba(59, 130, 246, 0.35),
     0 4px 6px -1px rgba(59, 130, 246, 0.25);
+}
+
+.mobile-compact :deep(section) {
+  padding: 0.5rem !important;
+  height: 100%;
+}
+
+.mobile-compact :deep(header) {
+  margin-bottom: 0.25rem !important;
+}
+
+.mobile-compact :deep(.text-\[10px\]) {
+  font-size: 8px !important;
+}
+
+.mobile-compact :deep(.text-xs) {
+  font-size: 9px !important;
+}
+
+.mobile-compact :deep(.text-sm) {
+  font-size: 10px !important;
+}
+
+.mobile-compact :deep(ul) {
+  gap: 0.25rem !important;
+  max-height: 120px !important;
+}
+
+.mobile-compact :deep(li) {
+  padding: 0.25rem 0.5rem !important;
+  font-size: 10px !important;
+}
+
+.mobile-compact :deep(.space-y-2) {
+  gap: 0.25rem !important;
+}
+
+.mobile-compact :deep(.space-y-1\.5) {
+  gap: 0.125rem !important;
+}
+
+.mobile-compact :deep(p) {
+  margin-bottom: 0.125rem !important;
 }
 </style>

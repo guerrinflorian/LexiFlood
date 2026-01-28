@@ -5,7 +5,7 @@ import { computeScore, isValidWord, normalizeWord } from './wordUtils';
 
 const MAX_SLOTS = 20;
 const OVERFLOW_COUNTDOWN_SECONDS = 5;
-const SOCKET_URL = 'http://localhost:3000';
+const SOCKET_URL = `http://${window.location.hostname}:3000`;
 
 type Slot = {
   id: number;
@@ -28,6 +28,7 @@ type PlayerSummary = {
 type RoundSnapshot = {
   roundIndex: number;
   totalRounds: number;
+  targetQualified: number;
   roundStartAt: number;
   durationMs: number;
   letterIntervalMs: number;
@@ -76,6 +77,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     scoreboard: [] as PlayerSummary[],
     roundIndex: 0,
     totalRounds: 0,
+    targetQualified: 0,
     roundStartAt: 0,
     durationMs: 0,
     letterIntervalMs: 0,
@@ -137,6 +139,12 @@ export const useMultiplayerStore = defineStore('multiplayer', {
 
       socket.on('disconnect', () => {
         this.playerId = '';
+        notifyError('Déconnecté du serveur.');
+      });
+
+      socket.on('connect_error', (error) => {
+        console.error('Socket connection error:', error);
+        notifyError('Impossible de se connecter au serveur. Vérifiez que le port 3000 est ouvert sur votre pare-feu.');
       });
 
       socket.on('room:created', (payload) => {
@@ -263,6 +271,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       this.phase = 'inRound';
       this.roundIndex = payload.roundIndex;
       this.totalRounds = payload.totalRounds;
+      this.targetQualified = payload.targetQualified;
       this.roundStartAt = payload.roundStartAt;
       this.durationMs = payload.durationMs;
       this.letterIntervalMs = payload.letterIntervalMs;
@@ -279,20 +288,21 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       }, startDelay);
       this.startCountdown();
     },
-    applySnapshot(payload) {
+    applySnapshot(payload: any) {
       if (payload.status === 'inRound' || payload.status === 'roundEnd') {
         this.resetBoard();
         this.phase = payload.status === 'roundEnd' ? 'roundEnd' : 'inRound';
         this.roundIndex = payload.roundIndex;
         this.totalRounds = payload.totalRounds;
+        this.targetQualified = payload.targetQualified ?? 0;
         this.roundStartAt = payload.roundStartAt ?? 0;
         this.durationMs = payload.durationMs ?? 0;
         this.letterIntervalMs = payload.letterIntervalMs ?? 0;
         this.timeLeftMs = payload.durationMs ?? 0;
         const letters = Array.isArray(payload.letterHistory)
-          ? payload.letterHistory.sort((a, b) => a.tickIndex - b.tickIndex)
+          ? payload.letterHistory.sort((a: { tickIndex: number }, b: { tickIndex: number }) => a.tickIndex - b.tickIndex)
           : [];
-        letters.forEach((entry) => this.applyLetter(entry.letter, { silent: true }));
+        letters.forEach((entry: { letter: string }) => this.applyLetter(entry.letter, { silent: true }));
         this.scoreboard = payload.scoreboard ?? [];
         this.startCountdown();
       }
