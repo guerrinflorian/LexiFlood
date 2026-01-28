@@ -1,8 +1,7 @@
 <template>
-  <div class="fixed bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent px-4 pb-4 pt-8">
-    <div class="mx-auto max-w-7xl rounded-2xl border border-slate-800/70 bg-slate-900/70 p-4 shadow-2xl shadow-slate-950/60 backdrop-blur">
-      <!-- Grille 2 lignes sur desktop, responsive sur mobile -->
-      <div class="grid grid-cols-5 gap-2 sm:grid-cols-10 sm:gap-3 md:gap-4">
+  <div class="rack-wrapper">
+    <div class="rack-shell">
+      <div class="rack-grid">
         <LetterTile
           v-for="(slot, index) in slots"
           :key="slot.id"
@@ -27,3 +26,37 @@ const store = useGameStore();
 const { slots, gameOver, errorIndices } = storeToRefs(store);
 const { toggleSelect } = store;
 </script>
+
+<style scoped>
+.rack-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 12px 16px 20px;
+  background: linear-gradient(180deg, rgba(5, 8, 18, 0) 0%, rgba(5, 8, 18, 0.7) 100%);
+}
+
+.rack-shell {
+  width: min(1200px, 100%);
+  padding: 18px;
+  border-radius: 28px;
+  background: rgba(8, 14, 26, 0.75);
+  border: 1px solid rgba(32, 243, 255, 0.35);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55), 0 0 40px rgba(34, 211, 238, 0.3);
+  backdrop-filter: blur(14px);
+  transform: perspective(900px) rotateX(6deg);
+}
+
+.rack-grid {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: clamp(6px, 1vw, 12px);
+}
+
+@media (max-width: 640px) {
+  .rack-shell {
+    padding: 12px;
+  }
+}
+</style>

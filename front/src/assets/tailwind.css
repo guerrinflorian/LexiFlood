@@ -2,6 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-primary: #20f3ff;
+  --color-secondary: #a855f7;
+  --color-accent: #facc15;
+  --color-surface: rgba(6, 12, 24, 0.85);
+  --color-surface-strong: rgba(9, 17, 34, 0.92);
+  --color-danger: #f43f5e;
+  --neon-cyan: #22d3ee;
+  --neon-magenta: #e879f9;
+  --neon-yellow: #facc15;
+  --neon-green: #4ade80;
+
+  --q-primary: #20f3ff;
+  --q-secondary: #a855f7;
+  --q-accent: #facc15;
+  --q-positive: #22c55e;
+  --q-negative: #f43f5e;
+  --q-warning: #facc15;
+  --q-info: #38bdf8;
+  --q-dark: #0b1220;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
 body {
   @apply bg-slate-950 text-slate-100;
+  overflow: hidden;
+}
+
+.lexi-dialog .q-card {
+  background: linear-gradient(180deg, rgba(10, 20, 35, 0.95) 0%, rgba(6, 12, 24, 0.98) 100%);
+  border: 1px solid rgba(32, 243, 255, 0.3);
+  box-shadow: 0 18px 50px rgba(2, 12, 24, 0.7), 0 0 30px rgba(32, 243, 255, 0.2);
+}
+
+.lexi-dialog .q-card__section--vert {
+  padding: 20px 24px;
+}
+
+.lexi-dialog .q-btn {
+  border-radius: 999px;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.lexi-dialog .q-btn--outline {
+  border-color: rgba(32, 243, 255, 0.4);
 }

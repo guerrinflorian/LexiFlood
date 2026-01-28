@@ -420,6 +420,7 @@ export const useGameStore = defineStore('game', {
         this.lastValidation = `${word} a déjà été joué.`;
         this.lastValidationStatus = 'error';
         notifyError(this.lastValidation);
+        this.clearSelection();
         return;
       }
       if (isValid && word.length > 0) {
