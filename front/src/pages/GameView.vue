@@ -1,26 +1,26 @@
 <template>
-  <div class="min-h-screen bg-slate-950 px-4 py-6 text-slate-100">
-    <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
+  <div class="min-h-[100dvh] bg-slate-950 px-4 py-4 text-slate-100">
+    <div class="mx-auto flex w-full max-w-6xl flex min-h-[100dvh] flex-col gap-4 pb-6">
       <ScoreHeader />
 
       <div
         v-if="roundBanner"
-        class="rounded-2xl border border-cyan-400/40 bg-cyan-400/10 px-4 py-3 text-center text-lg font-semibold text-cyan-200 shadow-md"
+        class="rounded-2xl border border-cyan-400/40 bg-cyan-400/10 px-4 py-3 text-center text-base font-semibold text-cyan-200 shadow-md"
       >
         {{ roundBanner }}
       </div>
 
-      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div class="flex flex-col gap-6">
-          <div class="rounded-2xl bg-slate-900/70 p-5 shadow-lg backdrop-blur">
-            <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div class="flex flex-col gap-4">
+          <div class="rounded-2xl bg-slate-900/70 p-4 shadow-lg backdrop-blur">
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p class="text-xs uppercase tracking-wide text-slate-400">Mot en cours</p>
-                <p class="text-2xl font-semibold text-white">
+                <p class="text-lg font-semibold text-white sm:text-xl">
                   {{ currentWord || '—' }}
                 </p>
               </div>
-              <div class="flex flex-wrap gap-3">
+              <div class="flex flex-wrap gap-2">
                 <button
                   type="button"
                   class="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-500"
@@ -38,7 +38,9 @@
                 </button>
               </div>
             </div>
-            <GameBoard />
+            <div class="mt-2 flex flex-1 items-end">
+              <GameBoard />
+            </div>
           </div>
 
           <div
@@ -53,7 +55,7 @@
 
           <div
             v-if="gameOver"
-            class="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-center text-lg font-semibold text-rose-200"
+            class="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-center text-base font-semibold text-rose-200 sm:text-lg"
           >
             Partie terminée
           </div>

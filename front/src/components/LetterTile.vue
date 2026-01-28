@@ -1,6 +1,6 @@
 <template>
   <button
-    class="letter-tile group flex w-full items-center justify-center rounded-lg border border-slate-700/70 bg-slate-900/70 text-2xl font-bold text-white shadow-md backdrop-blur transition duration-200"
+    class="letter-tile group flex w-full items-center justify-center rounded-lg border border-slate-700/70 bg-slate-900/70 text-base font-bold text-white shadow-md backdrop-blur transition duration-200 sm:text-lg lg:text-xl"
     :class="{
       'ring-2 ring-amber-300/80 shadow-[0_0_15px_rgba(251,191,36,0.45)] scale-[1.03]': selected,
       'opacity-40 cursor-not-allowed': disabled,

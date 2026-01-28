@@ -1,10 +1,8 @@
 <template>
-  <q-layout view="hHh lpR fFf">
-    <q-page-container>
-      <LandingPage v-if="view === 'landing'" @start-solo="handleSolo" @start-multi="handleMulti" />
-      <GameView v-else />
-    </q-page-container>
-  </q-layout>
+  <div class="min-h-screen bg-slate-950 text-slate-100">
+    <LandingPage v-if="view === 'landing'" @start-solo="handleSolo" @start-multi="handleMulti" />
+    <GameView v-else />
+  </div>
 </template>
 
 <script setup lang="ts">
