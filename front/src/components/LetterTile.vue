@@ -54,6 +54,9 @@ const neonClass = computed(() => {
   border-color: rgba(34, 211, 238, 0.35);
   background: rgba(5, 12, 24, 0.65);
   box-shadow: inset 0 0 12px rgba(32, 243, 255, 0.08), 0 0 12px rgba(32, 243, 255, 0.08);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 .letter-tile:hover:not(.is-disabled) {

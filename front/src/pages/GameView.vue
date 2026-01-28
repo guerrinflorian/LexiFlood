@@ -1,5 +1,10 @@
 <template>
-  <div class="flex h-screen flex-col overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+  <div class="relative flex h-screen flex-col overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div
+      class="pointer-events-none absolute inset-0 bg-cover bg-center opacity-30"
+      :style="{ backgroundImage: `url(${backgroundGame})` }"
+      aria-hidden="true"
+    ></div>
     <!-- Effet de fond futuriste -->
     <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-900/20 via-transparent to-transparent"></div>
     <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-blue-900/10 via-transparent to-transparent"></div>
@@ -10,7 +15,8 @@
     </div>
 
     <!-- Contenu principal : Layout flexible selon la taille d'écran -->
-    <div class="relative z-10 flex flex-1 flex-col gap-3 overflow-hidden px-3 py-3 md:grid md:grid-cols-[1fr_300px] md:px-4 lg:grid-cols-[1fr_340px]">
+    <div class="relative z-10 flex flex-1 flex-col gap-3 overflow-hidden px-3 py-3 md:grid md:grid-cols-[300px_minmax(0,1fr)_300px] md:px-4 lg:grid-cols-[340px_minmax(0,1fr)_340px]">
+      <div class="hidden md:block" aria-hidden="true"></div>
       <!-- Colonne principale : Mot + Actions -->
       <div class="flex min-h-0 flex-col gap-3 overflow-y-auto scrollbar-thin scrollbar-track-slate-950/50 scrollbar-thumb-slate-700/50">
         <!-- Zone du mot en cours -->
@@ -86,6 +92,7 @@
 import { useQuasar } from 'quasar';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
+import backgroundGame from '../assets/background_game.png';
 import GameBoard from '../components/GameBoard.vue';
 import ScoreHeader from '../components/ScoreHeader.vue';
 import WordHistory from '../components/WordHistory.vue';
