@@ -30,6 +30,19 @@
               <p class="mt-2 text-3xl font-semibold text-white sm:text-4xl">
                 {{ currentWord || '—' }}
               </p>
+              <div class="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs">
+                <span
+                  class="rounded-full border px-3 py-1 text-[11px] font-semibold"
+                  :class="wordPreviewClasses"
+                >
+                  {{ wordPreview.label }}
+                </span>
+                <span
+                  class="rounded-full border border-slate-800/70 bg-slate-900/70 px-3 py-1 text-[11px] font-semibold text-slate-200"
+                >
+                  {{ wordPreview.points }} pts
+                </span>
+              </div>
             </div>
             <div class="flex flex-wrap justify-center gap-2">
               <q-btn
@@ -54,13 +67,10 @@
                 color="primary"
                 class="px-5 text-slate-950"
                 label="Valider"
-                :disable="gameOver || currentWord.length === 0 || hasSubmittedThisRound"
+                :disable="gameOver || currentWord.length === 0"
                 @click="submitWord"
               />
             </div>
-            <p class="text-center text-xs text-slate-400">
-              Limite : un seul mot validé par round.
-            </p>
           </div>
         </div>
 
@@ -97,7 +107,7 @@ const {
   lastValidation,
   gameOver,
   overflowCountdown,
-  hasSubmittedThisRound,
+  wordPreview,
   score,
   highScore
 } = storeToRefs(store);
@@ -110,6 +120,19 @@ const overflowProgress = computed(() => {
     return 0;
   }
   return Math.min(1, Math.max(0, overflowCountdown.value / 5));
+});
+
+const wordPreviewClasses = computed(() => {
+  switch (wordPreview.value.status) {
+    case 'valid':
+      return 'border-emerald-500/60 bg-emerald-500/10 text-emerald-100';
+    case 'used':
+      return 'border-amber-400/60 bg-amber-400/10 text-amber-100';
+    case 'invalid':
+      return 'border-rose-400/60 bg-rose-400/10 text-rose-100';
+    default:
+      return 'border-slate-700/70 bg-slate-900/70 text-slate-400';
+  }
 });
 
 const showGameOverDialog = () => {

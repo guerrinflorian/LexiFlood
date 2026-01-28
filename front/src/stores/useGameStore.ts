@@ -178,9 +178,7 @@ export const useGameStore = defineStore('game', {
     score: 0,
     highScore: Number(localStorage.getItem('lexiflood_highscore') ?? 0),
     playerName: PLAYER_NAME,
-    round: 1,
     gameOver: false,
-    hasSubmittedThisRound: false,
     lastValidation: '' as string | null,
     lastValidationStatus: null as 'success' | 'error' | null,
     errorIndices: [] as number[],
@@ -200,6 +198,24 @@ export const useGameStore = defineStore('game', {
       return state.selectedIndices
         .map((index) => state.slots[index]?.letter ?? '')
         .join('');
+    },
+    wordPreview(state) {
+      const rawWord = state.selectedIndices
+        .map((index) => state.slots[index]?.letter ?? '')
+        .join('');
+      const normalizedWord = normalizeWord(rawWord);
+      if (!normalizedWord) {
+        return { status: 'empty', label: 'Sélectionnez des lettres', points: 0 };
+      }
+      const isValid = DICTIONARY.has(normalizedWord);
+      const points = computeScore(normalizedWord);
+      if (state.usedWords.includes(normalizedWord)) {
+        return { status: 'used', label: 'Mot déjà utilisé', points };
+      }
+      if (!isValid) {
+        return { status: 'invalid', label: 'Mot invalide', points: 0 };
+      }
+      return { status: 'valid', label: 'Mot valide', points };
     }
   },
   actions: {
@@ -210,9 +226,7 @@ export const useGameStore = defineStore('game', {
       this.slots = createSlots();
       this.selectedIndices = [];
       this.score = 0;
-      this.round = 1;
       this.gameOver = false;
-      this.hasSubmittedThisRound = false;
       this.lastValidation = null;
       this.lastValidationStatus = null;
       this.errorIndices = [];
@@ -242,7 +256,6 @@ export const useGameStore = defineStore('game', {
           return;
         }
         this.spawnLetter();
-        this.advanceRound();
       }, SPAWN_INTERVAL_MS);
     },
     seedInitialLetters() {
@@ -303,10 +316,6 @@ export const useGameStore = defineStore('game', {
       }
       this.lastSpawnedLetter = letter;
       return letter;
-    },
-    advanceRound() {
-      this.round += 1;
-      this.hasSubmittedThisRound = false;
     },
     placeRandomLetter() {
       const emptySlots = this.slots
@@ -407,12 +416,6 @@ export const useGameStore = defineStore('game', {
       if (this.selectedIndices.length === 0) {
         return;
       }
-      if (this.hasSubmittedThisRound) {
-        this.lastValidation = 'Un seul mot autorisé par round.';
-        this.lastValidationStatus = 'error';
-        notifyError(this.lastValidation);
-        return;
-      }
       const word = this.currentWord;
       const normalizedWord = normalizeWord(word);
       const isValid = DICTIONARY.has(normalizedWord);
@@ -450,7 +453,6 @@ export const useGameStore = defineStore('game', {
         this.lastValidation = `+${points} points pour ${word}`;
         this.lastValidationStatus = 'success';
         notifySuccess(this.lastValidation);
-        this.hasSubmittedThisRound = true;
         if (this.score > this.highScore) {
           this.highScore = this.score;
           localStorage.setItem('lexiflood_highscore', String(this.score));
