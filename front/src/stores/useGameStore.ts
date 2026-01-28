@@ -1,36 +1,73 @@
 import { defineStore } from 'pinia';
-import { checkWord } from '../services/dictionary';
+import words from 'an-array-of-french-words';
 
-const LETTER_WEIGHTS: Array<{ letters: string[]; weight: number }> = [
-  { letters: ['E', 'A', 'I', 'S', 'N', 'R', 'T', 'O', 'L', 'U'], weight: 10 },
-  { letters: ['D', 'M', 'C', 'P'], weight: 5 },
-  { letters: ['G', 'B', 'V', 'H', 'F'], weight: 3 },
-  { letters: ['J', 'Q', 'K', 'X', 'Y', 'Z'], weight: 1 }
-];
+const LETTER_WEIGHTS: Record<string, number> = {
+  E: 15,
+  A: 9,
+  I: 8,
+  S: 7,
+  N: 7,
+  R: 7,
+  T: 7,
+  O: 6,
+  U: 6,
+  L: 5,
+  D: 3,
+  M: 3,
+  C: 3,
+  P: 3,
+  G: 2,
+  B: 2,
+  V: 2,
+  H: 2,
+  F: 2,
+  J: 1,
+  Q: 1,
+  K: 1,
+  W: 1,
+  X: 1,
+  Y: 1,
+  Z: 1
+};
 
 const MAX_SLOTS = 20;
 const SPAWN_INTERVAL_MS = 800;
-const ROUND_DURATION_SECONDS = 90;
+const ROUND_DURATIONS: Record<number, number> = {
+  1: 90,
+  2: 90,
+  3: 90,
+  4: 60
+};
 const PLAYER_NAME = 'LexiHero';
 
 const createSlots = () =>
   Array.from({ length: MAX_SLOTS }, (_, index) => ({
     id: index,
     letter: null as string | null,
-    selected: false
+    selected: false,
+    isNew: false
   }));
 
 const getRandomLetter = () => {
   const bag: string[] = [];
-  LETTER_WEIGHTS.forEach(({ letters, weight }) => {
-    letters.forEach((letter) => {
-      for (let count = 0; count < weight; count += 1) {
-        bag.push(letter);
-      }
-    });
+  Object.entries(LETTER_WEIGHTS).forEach(([letter, weight]) => {
+    for (let count = 0; count < weight; count += 1) {
+      bag.push(letter);
+    }
   });
   return bag[Math.floor(Math.random() * bag.length)];
 };
+
+const normalizeWord = (value: string) =>
+  value
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Z]/g, '');
+
+const DICTIONARY = new Set(words.map((word) => normalizeWord(word)).filter(Boolean));
+
+const getRoundDuration = (round: number) => ROUND_DURATIONS[round] ?? ROUND_DURATIONS[1];
 
 const getTargetPlayersForRound = (round: number, totalPlayers: number) => {
   if (round === 1) {
@@ -68,9 +105,12 @@ export const useGameStore = defineStore('game', {
     playerName: PLAYER_NAME,
     players: [] as Player[],
     round: 1,
-    roundTimeLeft: ROUND_DURATION_SECONDS,
+    roundTimeLeft: getRoundDuration(1),
     gameOver: false,
-    lastValidation: '' as string | null
+    lastValidation: '' as string | null,
+    lastValidationStatus: null as 'success' | 'error' | null,
+    errorIndices: [] as number[],
+    roundBanner: '' as string | null
   }),
   getters: {
     currentWord(state) {
@@ -83,16 +123,21 @@ export const useGameStore = defineStore('game', {
     }
   },
   actions: {
+    setPlayerName(name: string) {
+      this.playerName = name.trim() || PLAYER_NAME;
+    },
     resetGame(mode: 'solo' | 'multi') {
       this.mode = mode;
-      this.playerName = PLAYER_NAME;
       this.slots = createSlots();
       this.selectedIndices = [];
       this.score = 0;
       this.round = 1;
-      this.roundTimeLeft = ROUND_DURATION_SECONDS;
+      this.roundTimeLeft = getRoundDuration(1);
       this.gameOver = false;
       this.lastValidation = null;
+      this.lastValidationStatus = null;
+      this.errorIndices = [];
+      this.roundBanner = null;
       if (spawnInterval) {
         clearInterval(spawnInterval);
         spawnInterval = null;
@@ -128,7 +173,7 @@ export const useGameStore = defineStore('game', {
       }, SPAWN_INTERVAL_MS);
     },
     startRoundTimer() {
-      this.roundTimeLeft = ROUND_DURATION_SECONDS;
+      this.roundTimeLeft = getRoundDuration(this.round);
       roundInterval = setInterval(() => {
         if (this.gameOver) {
           return;
@@ -158,8 +203,15 @@ export const useGameStore = defineStore('game', {
         return;
       }
       this.round += 1;
-      this.roundTimeLeft = ROUND_DURATION_SECONDS;
+      this.roundTimeLeft = getRoundDuration(this.round);
       this.simulateOpponents();
+      this.showRoundBanner();
+    },
+    showRoundBanner() {
+      this.roundBanner = `ROUND ${this.round} - ÉLIMINATION`;
+      setTimeout(() => {
+        this.roundBanner = null;
+      }, 2000);
     },
     simulateOpponents() {
       this.players = this.players.map((player) => {
@@ -183,10 +235,17 @@ export const useGameStore = defineStore('game', {
       }
       const targetIndex = emptySlots[Math.floor(Math.random() * emptySlots.length)];
       this.slots[targetIndex].letter = getRandomLetter();
+      this.slots[targetIndex].isNew = true;
+      setTimeout(() => {
+        if (this.slots[targetIndex]) {
+          this.slots[targetIndex].isNew = false;
+        }
+      }, 400);
     },
     handleRackOverflow() {
       this.gameOver = true;
       this.lastValidation = 'Game Over : rack saturé.';
+      this.lastValidationStatus = 'error';
       if (this.mode === 'multi') {
         this.players = this.players.map((player) =>
           player.id === 'you' ? { ...player, eliminated: true } : player
@@ -222,13 +281,13 @@ export const useGameStore = defineStore('game', {
       });
       this.selectedIndices = [];
     },
-    async validateSelection() {
+    submitWord() {
       if (this.selectedIndices.length === 0) {
         return;
       }
       const word = this.currentWord;
-      const isValid = await checkWord(word);
-      if (isValid) {
+      const isValid = DICTIONARY.has(normalizeWord(word));
+      if (isValid && word.length > 0) {
         const points = word.length * word.length;
         this.score += points;
         if (this.mode === 'multi') {
@@ -243,13 +302,22 @@ export const useGameStore = defineStore('game', {
         });
         this.selectedIndices = [];
         this.lastValidation = `+${points} points pour ${word}`;
+        this.lastValidationStatus = 'success';
         if (this.mode === 'solo' && this.score > this.highScore) {
           this.highScore = this.score;
           localStorage.setItem('lexiflood_highscore', String(this.score));
         }
       } else {
         this.lastValidation = `${word} n'est pas valide.`;
+        this.lastValidationStatus = 'error';
+        this.errorIndices = [...this.selectedIndices];
+        setTimeout(() => {
+          this.errorIndices = [];
+        }, 400);
         this.clearSelection();
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate(120);
+        }
       }
     }
   }
