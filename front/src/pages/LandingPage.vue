@@ -27,6 +27,13 @@
       >
         Lancer la partie solo
       </button>
+      <button
+        type="button"
+        class="w-full rounded-xl border border-slate-700 bg-slate-900/70 px-4 py-3 text-lg font-semibold text-white shadow-lg shadow-slate-900/30 transition hover:border-cyan-400/60 hover:text-cyan-200"
+        @click="handleMulti"
+      >
+        Multijoueur
+      </button>
     </div>
   </div>
 </template>
@@ -36,11 +43,16 @@ import { ref } from 'vue';
 
 const emit = defineEmits<{
   (event: 'start-solo', pseudo: string): void;
+  (event: 'start-multi'): void;
 }>();
 
 const pseudo = ref('');
 
 const handleSolo = () => {
   emit('start-solo', pseudo.value);
+};
+
+const handleMulti = () => {
+  emit('start-multi');
 };
 </script>

@@ -21,6 +21,8 @@
     "fastify": "^4.28.1",
     "pinia": "^2.2.2",
     "quasar": "^2.17.2",
+    "socket.io": "^4.7.5",
+    "socket.io-client": "^4.7.5",
     "vue": "^3.4.38"
   },
   "devDependencies": {
