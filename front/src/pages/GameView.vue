@@ -1,9 +1,11 @@
 <template>
   <div class="min-h-[100dvh] bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900 text-slate-100">
-    <WordHistory />
     <!-- Contenu principal avec padding bottom pour la grille fixe -->
     <div class="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4 pb-48 sm:pb-56">
-      <ScoreHeader />
+      <div class="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+        <ScoreHeader />
+        <WordHistory />
+      </div>
 
       <div
         v-if="overflowCountdown !== null"
@@ -15,14 +17,14 @@
       <div class="flex flex-col gap-4">
         <!-- Zone de contrôle -->
         <div class="rounded-2xl border border-slate-800/80 bg-slate-900/70 p-4 shadow-lg backdrop-blur">
-          <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p class="text-xs uppercase tracking-wide text-slate-400">Mot en cours</p>
-              <p class="text-lg font-semibold text-white sm:text-xl">
+          <div class="flex flex-col gap-4">
+            <div class="rounded-2xl border border-slate-800/70 bg-slate-950/80 px-6 py-6 text-center shadow-inner">
+              <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Mot en cours</p>
+              <p class="mt-2 text-3xl font-semibold text-white sm:text-4xl">
                 {{ currentWord || '—' }}
               </p>
             </div>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap justify-center gap-2">
               <button
                 type="button"
                 class="rounded-xl border border-slate-700/70 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white"
@@ -46,10 +48,10 @@
                 Valider
               </button>
             </div>
+            <p class="text-center text-xs text-slate-400">
+              Limite : un seul mot validé par round.
+            </p>
           </div>
-          <p class="text-xs text-slate-400">
-            Limite : un seul mot validé par round.
-          </p>
         </div>
 
         <div v-if="gameOver" class="text-center text-sm text-rose-200">
@@ -102,6 +104,7 @@ const showGameOverDialog = () => {
     message: `${lastValidation.value ?? 'Partie terminée.'}\nScore : ${score.value}\nMeilleur score : ${highScore.value}`,
     ok: { label: 'Rejouer', color: 'primary' },
     cancel: { label: "Retour à l'accueil", color: 'secondary' },
+    dark: true,
     noFocus: true,
     noRefocus: true,
     persistent: true
@@ -123,6 +126,7 @@ const confirmQuit = () => {
     message: 'Votre progression sera perdue.',
     ok: { label: 'Quitter', color: 'negative' },
     cancel: { label: 'Continuer', color: 'secondary' },
+    dark: true,
     noFocus: true,
     noRefocus: true
   }).onOk(() => {
