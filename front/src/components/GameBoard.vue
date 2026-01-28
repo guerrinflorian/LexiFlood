@@ -48,10 +48,14 @@ const { toggleSelect } = store;
 }
 
 .rack-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(clamp(30px, 8vw, 72px), 1fr));
-  grid-auto-rows: minmax(0, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: clamp(6px, 1vw, 12px);
+}
+
+.rack-grid :deep(.letter-tile) {
+  flex: 0 0 clamp(30px, 8vw, 72px);
 }
 
 @media (max-width: 640px) {

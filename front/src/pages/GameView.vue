@@ -81,11 +81,9 @@
           Partie terminée
         </div>
       </div>
-
-    </div>
-
-    <div class="mt-auto shrink-0">
-      <GameBoard />
+      <div class="mt-2 w-full">
+        <GameBoard />
+      </div>
     </div>
   </div>
 </template>
