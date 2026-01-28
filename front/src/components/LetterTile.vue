@@ -16,12 +16,12 @@
   >
     <span
       v-if="letter"
-      class="letter-char text-xl font-bold sm:text-2xl md:text-3xl"
+      class="letter-char font-bold"
       :class="{ 'letter-char-selected': selected }"
     >
       {{ letter }}
     </span>
-    <span v-else class="text-2xl text-slate-700/50 sm:text-3xl">•</span>
+    <span v-else class="letter-placeholder text-slate-700/50">•</span>
   </button>
 </template>
 
@@ -50,7 +50,7 @@ const neonClass = computed(() => {
 <style scoped>
 .letter-tile {
   aspect-ratio: 1 / 1;
-  min-height: clamp(36px, 6vw, 70px);
+  min-height: clamp(30px, 7vw, 64px);
   border-color: rgba(34, 211, 238, 0.35);
   background: rgba(5, 12, 24, 0.65);
   box-shadow: inset 0 0 12px rgba(32, 243, 255, 0.08), 0 0 12px rgba(32, 243, 255, 0.08);
@@ -72,11 +72,16 @@ const neonClass = computed(() => {
 }
 
 .letter-char {
+  font-size: clamp(0.9rem, 2.6vw, 1.6rem);
   color: currentColor;
   text-shadow:
     0 0 6px rgba(255, 255, 255, 0.9),
     0 0 14px currentColor,
     0 0 30px currentColor;
+}
+
+.letter-placeholder {
+  font-size: clamp(1rem, 2.8vw, 1.7rem);
 }
 
 .letter-char-selected {
