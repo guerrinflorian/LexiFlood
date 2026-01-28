@@ -49,6 +49,9 @@ const props = defineProps<{
   timeLeftMs: number;
   durationMs: number;
   targetQualified: number;
+  phase: 'entry' | 'lobby' | 'inRound' | 'roundEnd' | 'finished';
+  qualifiedIds: string[];
+  eliminatedIds: string[];
 }>();
 
 const timeProgress = computed(() => {
@@ -65,25 +68,23 @@ const formattedTimeLeft = computed(() => {
 
 const getRowClasses = (player: typeof props.scoreboard[0]) => {
   const classes = [];
-  
-  if (player.eliminated) {
-    classes.push('border-slate-800/40 bg-slate-900/40 opacity-50');
+
+  if (player.eliminated || props.eliminatedIds.includes(player.id)) {
+    classes.push('border-rose-500/40 bg-rose-950/40 text-rose-200');
   } else if (player.ko) {
-     classes.push('border-rose-900/30 bg-rose-950/30');
+    classes.push('border-rose-500/30 bg-rose-950/30');
   } else {
-    // Qualification check: Position <= targetQualified
-    const isQualified = (player.position ?? 999) <= props.targetQualified;
-    
+    const isQualified = props.phase === 'roundEnd'
+      ? props.qualifiedIds.includes(player.id)
+      : (player.position ?? 999) <= props.targetQualified;
+
     if (player.id === props.playerId) {
-       // Self
-       classes.push('border-cyan-500/50 bg-cyan-500/20');
-       if (isQualified) classes.push('shadow-[inset_0_0_10px_rgba(16,185,129,0.1)]');
+      classes.push('border-cyan-500/50 bg-cyan-500/20');
+      if (isQualified) classes.push('shadow-[inset_0_0_12px_rgba(16,185,129,0.2)]');
     } else if (isQualified) {
-       // Other Qualified
-       classes.push('border-emerald-500/30 bg-emerald-500/10');
+      classes.push('border-emerald-500/40 bg-emerald-500/15 text-emerald-100');
     } else {
-       // Other Not Qualified
-       classes.push('border-slate-800/60 bg-slate-950/60');
+      classes.push('border-slate-800/60 bg-slate-950/60');
     }
   }
 

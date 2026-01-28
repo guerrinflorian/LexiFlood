@@ -17,9 +17,10 @@
         class="flex items-center justify-between gap-2 rounded-lg border border-slate-700/50 bg-gradient-to-br from-slate-900/70 to-slate-950/60 px-2.5 py-2 transition-all hover:border-slate-600/60 hover:from-slate-800/80 hover:to-slate-900/70"
       >
         <div class="min-w-0 flex-1">
-          <p class="truncate text-sm font-semibold text-white">{{ entry.word }}</p>
+          <p class="truncate text-sm font-semibold text-white">{{ entry.playerName }}</p>
           <p class="text-[10px] text-slate-400">{{ entry.time }}</p>
         </div>
+        <span class="text-[10px] uppercase tracking-[0.2em] text-slate-500">Mot caché</span>
         <span class="text-sm font-bold text-emerald-300" style="text-shadow: 0 0 8px rgba(110, 231, 183, 0.4)">
           +{{ entry.points }}
         </span>

@@ -152,6 +152,9 @@
             :time-left-ms="timeLeftMs"
             :duration-ms="durationMs"
             :target-qualified="targetQualified"
+            :phase="phase"
+            :qualified-ids="roundResult?.qualifiedIds ?? []"
+            :eliminated-ids="roundResult?.eliminatedIds ?? []"
             class="mobile-compact"
           />
         </div>
@@ -170,6 +173,9 @@
           :time-left-ms="timeLeftMs"
           :duration-ms="durationMs"
           :target-qualified="targetQualified"
+          :phase="phase"
+          :qualified-ids="roundResult?.qualifiedIds ?? []"
+          :eliminated-ids="roundResult?.eliminatedIds ?? []"
         />
       </div>
 
@@ -228,13 +234,25 @@
       >
         <div class="w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900/80 p-6 text-center">
           <h3 class="text-2xl font-bold text-white">Fin du round</h3>
-          <p class="mt-2 text-sm text-slate-400">Round {{ roundIndex + 1 }} terminé. Prochain round imminent...</p>
-          <div class="mt-4 text-left">
-            <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Éliminations</p>
-            <ul class="mt-2 space-y-1 text-sm text-slate-200">
-              <li v-for="player in eliminatedPlayers" :key="player.id">{{ player.name }}</li>
-              <li v-if="!eliminatedPlayers.length" class="text-slate-500">Personne n'est éliminé.</li>
-            </ul>
+          <p class="mt-2 text-sm text-slate-400">
+            Round {{ roundIndex + 1 }} terminé. Prochain round dans
+            <span class="font-semibold text-cyan-300">{{ intermissionCountdown ?? 0 }}</span>s.
+          </p>
+          <div class="mt-5 grid gap-4 text-left md:grid-cols-2">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-emerald-300">Qualifiés</p>
+              <ul class="mt-2 space-y-1 text-sm text-slate-200">
+                <li v-for="player in qualifiedPlayers" :key="player.id">{{ player.name }}</li>
+                <li v-if="!qualifiedPlayers.length" class="text-slate-500">Aucun qualifié.</li>
+              </ul>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-rose-300">Éliminations</p>
+              <ul class="mt-2 space-y-1 text-sm text-slate-200">
+                <li v-for="player in eliminatedPlayers" :key="player.id">{{ player.name }}</li>
+                <li v-if="!eliminatedPlayers.length" class="text-slate-500">Personne n'est éliminé.</li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
@@ -265,7 +283,7 @@
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
 import { storeToRefs } from 'pinia';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import backgroundGame from '../assets/background_game.png';
 import MultiplayerBoard from '../multiplayer/components/MultiplayerBoard.vue';
 import MultiplayerScoreboard from '../multiplayer/components/MultiplayerScoreboard.vue';
@@ -287,6 +305,7 @@ const {
   targetQualified,
   timeLeftMs,
   durationMs,
+  intermissionCountdown,
   currentWord,
   wordPreview,
   roundResult,
@@ -330,12 +349,65 @@ const eliminatedPlayers = computed(() => {
   const eliminatedIds = roundResult.value?.eliminatedIds ?? [];
   return scoreboard.value.filter((player) => eliminatedIds.includes(player.id));
 });
+const qualifiedPlayers = computed(() => {
+  const qualifiedIds = roundResult.value?.qualifiedIds ?? [];
+  return scoreboard.value.filter((player) => qualifiedIds.includes(player.id));
+});
 
 const finalScoreboard = computed(() => finalResult.value?.scoreboard ?? scoreboard.value);
 const winnerName = computed(() => {
   const winnerId = finalResult.value?.winnerId;
   return finalScoreboard.value.find((player) => player.id === winnerId)?.name ?? 'Champion';
 });
+
+const lastRoundNotified = ref<number | null>(null);
+watch(
+  () => roundResult.value?.roundIndex,
+  (roundIndexValue) => {
+    if (roundIndexValue === undefined || roundIndexValue === null) {
+      return;
+    }
+    if (lastRoundNotified.value === roundIndexValue) {
+      return;
+    }
+    lastRoundNotified.value = roundIndexValue;
+    const eliminatedIds = roundResult.value?.eliminatedIds ?? [];
+    const qualifiedIds = roundResult.value?.qualifiedIds ?? [];
+    const isEliminated = eliminatedIds.includes(playerId.value);
+    const isQualified = qualifiedIds.includes(playerId.value);
+    if (isEliminated) {
+      $q.notify({
+        message: 'Vous êtes éliminé et passez en mode spectateur.',
+        color: 'negative',
+        position: 'top',
+        timeout: 3500
+      });
+      $q.dialog({
+        title: 'Éliminé',
+        message: 'Vous êtes éliminé. Vous pouvez continuer à observer la partie en mode spectateur.',
+        ok: { label: 'Compris', color: 'negative', unelevated: true, rounded: true },
+        dark: true,
+        class: 'lexi-dialog'
+      });
+      return;
+    }
+    if (isQualified) {
+      $q.notify({
+        message: 'Qualifié pour le prochain round !',
+        color: 'positive',
+        position: 'top',
+        timeout: 3000
+      });
+      $q.dialog({
+        title: 'Qualifié',
+        message: 'Bravo ! Vous êtes qualifié pour le prochain round.',
+        ok: { label: 'Continuer', color: 'primary', unelevated: true, rounded: true },
+        dark: true,
+        class: 'lexi-dialog'
+      });
+    }
+  }
+);
 
 const handleCreate = () => {
   if (!pseudo.value.trim()) {
