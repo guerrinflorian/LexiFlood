@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-[100dvh] bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900 text-slate-100">
+    <WordHistory />
     <!-- Contenu principal avec padding bottom pour la grille fixe -->
     <div class="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4 pb-48 sm:pb-56">
       <ScoreHeader />
@@ -72,6 +73,7 @@ import { storeToRefs } from 'pinia';
 import { ref, watch } from 'vue';
 import GameBoard from '../components/GameBoard.vue';
 import ScoreHeader from '../components/ScoreHeader.vue';
+import WordHistory from '../components/WordHistory.vue';
 import { useGameStore } from '../stores/useGameStore';
 
 const emit = defineEmits<{ (event: 'quit'): void }>();
@@ -100,6 +102,8 @@ const showGameOverDialog = () => {
     message: `${lastValidation.value ?? 'Partie terminée.'}\nScore : ${score.value}\nMeilleur score : ${highScore.value}`,
     ok: { label: 'Rejouer', color: 'primary' },
     cancel: { label: "Retour à l'accueil", color: 'secondary' },
+    noFocus: true,
+    noRefocus: true,
     persistent: true
   })
     .onOk(() => {
@@ -118,7 +122,9 @@ const confirmQuit = () => {
     title: 'Quitter la partie ?',
     message: 'Votre progression sera perdue.',
     ok: { label: 'Quitter', color: 'negative' },
-    cancel: { label: 'Continuer', color: 'secondary' }
+    cancel: { label: 'Continuer', color: 'secondary' },
+    noFocus: true,
+    noRefocus: true
   }).onOk(() => {
     resetGame();
     emit('quit');
