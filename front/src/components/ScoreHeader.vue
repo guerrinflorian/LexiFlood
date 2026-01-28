@@ -1,41 +1,45 @@
 <template>
-  <div class="score-header">
-    <div class="info-badges">
-      <div class="badge">
-        <svg class="badge-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-        </svg>
-        <span class="badge-label">Meilleur</span>
-        <span class="badge-value">{{ highScore }}</span>
-      </div>
-      
-      <div class="badge badge-status">
-        <span class="status-dot"></span>
-        <span class="badge-text">En cours</span>
+  <div class="relative flex h-12 items-center gap-2 p-2 pr-16 md:h-14 md:p-3 md:pr-20">
+    <!-- Badges info - avec min-width 0 pour permettre le shrink -->
+    <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+      <!-- Meilleur score -->
+      <div class="flex flex-shrink-0 items-center gap-1.5 rounded-full border border-slate-700/50 bg-slate-900/70 px-3 py-1.5 text-xs transition-all hover:border-slate-600/60 hover:bg-slate-800/80">
+        <span class="text-lg">🏆</span>
+        <span class="hidden text-slate-400 sm:inline">Meilleur</span>
+        <span class="font-bold text-white">{{ highScore }}</span>
       </div>
 
-      <!-- Alerte de débordement inline -->
-      <transition name="alert-slide">
-        <div v-if="overflowCountdown !== null" class="badge badge-overflow">
-          <svg class="overflow-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <span class="overflow-text">
-            <strong>{{ overflowCountdown }}s</strong>
-          </span>
-          <q-linear-progress
-            v-if="overflowCountdown <= 5"
-            rounded
-            size="3px"
-            color="warning"
-            track-color="orange-900"
-            class="overflow-progress"
-            :value="overflowProgress"
-          />
+      <!-- Statut en cours -->
+      <div class="flex flex-shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/30 bg-gradient-to-br from-emerald-900/25 to-emerald-950/20 px-3 py-1.5 text-xs">
+        <span class="relative flex h-2 w-2">
+          <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+        </span>
+        <span class="font-semibold text-emerald-100">En cours</span>
+      </div>
+
+      <!-- Progress bar - prend l'espace disponible mais ne dépasse pas -->
+      <transition name="progress-expand">
+        <div
+          v-if="overflowCountdown !== null"
+          class="progress-container flex h-7 min-w-0 flex-1 items-center gap-2 rounded-full border border-amber-500/50 bg-gradient-to-r from-orange-900/30 to-orange-950/20 px-3 py-1.5 backdrop-blur"
+        >
+          <span class="flex-shrink-0 text-lg">⚠️</span>
+          <span class="flex-shrink-0 text-xs font-bold tabular-nums text-amber-100">{{ overflowCountdown }}s</span>
+          <div class="min-w-0 flex-1">
+            <q-linear-progress
+              rounded
+              size="6px"
+              color="warning"
+              track-color="orange-900"
+              :value="overflowProgress"
+            />
+          </div>
         </div>
       </transition>
     </div>
 
+    <!-- Cercle de score -->
     <div class="score-circle">
       <span class="score-label">Score</span>
       <span class="score-value">{{ score }}</span>
@@ -60,98 +64,10 @@ const overflowProgress = computed(() => {
 </script>
 
 <style scoped>
-.score-header {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  padding-right: 4rem;
-  border-radius: 0.75rem;
-  border: 1px solid rgba(100, 116, 139, 0.3);
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
-  box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(12px);
-}
-
-.info-badges {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1;
-}
-
-.badge {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.675rem;
-  border-radius: 9999px;
-  border: 1px solid rgba(71, 85, 105, 0.4);
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%);
-  font-size: 0.75rem;
-  color: #cbd5e1;
-  white-space: nowrap;
-  transition: all 0.2s ease;
-}
-
-.badge:hover {
-  border-color: rgba(100, 116, 139, 0.5);
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);
-}
-
-.badge-icon {
-  width: 0.875rem;
-  height: 0.875rem;
-  color: #fbbf24;
-  flex-shrink: 0;
-}
-
-.badge-label {
-  font-weight: 500;
-  color: #94a3b8;
-}
-
-.badge-value {
-  font-weight: 700;
-  color: #ffffff;
-  font-size: 0.8125rem;
-}
-
-.badge-status {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%);
-  border-color: rgba(16, 185, 129, 0.3);
-}
-
-.status-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
-  animation: pulse-dot 2s ease-in-out infinite;
-}
-
-@keyframes pulse-dot {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.badge-text {
-  font-weight: 600;
-  color: #d1fae5;
-}
-
+/* Cercle de score */
 .score-circle {
   position: absolute;
-  right: 0.625rem;
+  right: 0.5rem;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
@@ -161,20 +77,20 @@ const overflowProgress = computed(() => {
   width: 3rem;
   height: 3rem;
   border-radius: 50%;
-  border: 2px solid rgba(59, 130, 246, 0.5);
+  border: 2px solid rgba(59, 130, 246, 0.6);
   background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%);
   box-shadow: 
     0 4px 6px -1px rgba(0, 0, 0, 0.3),
-    0 0 20px rgba(59, 130, 246, 0.3),
+    0 0 20px rgba(59, 130, 246, 0.4),
     inset 0 2px 4px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
 }
 
 .score-circle:hover {
-  border-color: rgba(59, 130, 246, 0.7);
+  border-color: rgba(59, 130, 246, 0.8);
   box-shadow: 
     0 6px 8px -1px rgba(0, 0, 0, 0.3),
-    0 0 30px rgba(59, 130, 246, 0.4),
+    0 0 30px rgba(59, 130, 246, 0.5),
     inset 0 2px 4px rgba(0, 0, 0, 0.2);
   transform: translateY(-50%) scale(1.05);
 }
@@ -197,16 +113,8 @@ const overflowProgress = computed(() => {
   text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
 }
 
-/* Badge d'alerte de débordement inline */
-.badge-overflow {
-  position: relative;
-  background: linear-gradient(135deg, rgba(217, 119, 6, 0.25) 0%, rgba(180, 83, 9, 0.2) 100%);
-  border-color: rgba(251, 191, 36, 0.6);
-  padding: 0.375rem 0.675rem 0.5rem 0.675rem;
-  animation: pulse-badge 2s ease-in-out infinite;
-}
-
-@keyframes pulse-badge {
+/* Animation de pulsation pour l'alerte */
+@keyframes pulse-glow {
   0%, 100% {
     box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
   }
@@ -215,81 +123,42 @@ const overflowProgress = computed(() => {
   }
 }
 
-.overflow-icon {
-  width: 0.875rem;
-  height: 0.875rem;
-  flex-shrink: 0;
-  color: #fbbf24;
-  animation: pulse-warning 2s ease-in-out infinite;
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
 }
 
-@keyframes pulse-warning {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.05);
-  }
+/* Container pour la progress bar avec transition */
+.progress-container {
+  overflow: hidden;
 }
 
-.overflow-text {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #fef3c7;
-  white-space: nowrap;
+/* Transitions - utilise max-width au lieu de width pour éviter le push */
+.progress-expand-enter-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.overflow-text strong {
-  color: #fbbf24;
-  font-size: 0.875rem;
+.progress-expand-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 1, 1);
 }
 
-.overflow-progress {
-  position: absolute;
-  bottom: 2px;
-  left: 0.5rem;
-  right: 0.5rem;
-}
-
-/* Transitions */
-.alert-slide-enter-active,
-.alert-slide-leave-active {
-  transition: all 0.3s ease;
-}
-
-.alert-slide-enter-from {
+.progress-expand-enter-from {
   opacity: 0;
-  transform: scale(0.95);
+  max-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  border-width: 0;
 }
 
-.alert-slide-leave-to {
+.progress-expand-leave-to {
   opacity: 0;
-  transform: scale(0.95);
+  max-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  border-width: 0;
 }
 
 /* Responsive */
-@media (max-width: 640px) {
-  .score-header {
-    padding: 0.75rem 0.875rem;
-    padding-right: 4.5rem;
-  }
-
-  .badge {
-    padding: 0.4rem 0.75rem;
-    font-size: 0.75rem;
-  }
-
-  .badge-icon {
-    width: 0.875rem;
-    height: 0.875rem;
-  }
-
-  .badge-value {
-    font-size: 0.8125rem;
-  }
-
+@media (min-width: 640px) {
   .score-circle {
     width: 3.5rem;
     height: 3.5rem;
@@ -297,17 +166,7 @@ const overflowProgress = computed(() => {
   }
 
   .score-value {
-    font-size: 1.125rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .badge-label {
-    display: none;
-  }
-  
-  .badge {
-    gap: 0.375rem;
+    font-size: 1.25rem;
   }
 }
 </style>
