@@ -1,6 +1,6 @@
 <template>
-  <div class="fixed bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent px-4 pb-4 pt-8">
-    <div class="mx-auto max-w-7xl">
+  <div class="fixed bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent px-4 pb-4 pt-8">
+    <div class="mx-auto max-w-7xl rounded-2xl border border-slate-800/70 bg-slate-900/70 p-4 shadow-2xl shadow-slate-950/60 backdrop-blur">
       <!-- Grille 2 lignes sur desktop, responsive sur mobile -->
       <div class="grid grid-cols-5 gap-2 sm:grid-cols-10 sm:gap-3 md:gap-4">
         <LetterTile

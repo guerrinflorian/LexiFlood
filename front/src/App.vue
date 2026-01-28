@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-slate-950 text-slate-100">
-    <LandingPage v-if="view === 'landing'" @start-solo="handleSolo" @start-multi="handleMulti" />
+  <div class="min-h-screen bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900 text-slate-100">
+    <LandingPage v-if="view === 'landing'" @start-solo="handleSolo" />
     <GameView v-else />
   </div>
 </template>
@@ -12,18 +12,12 @@ import GameView from './pages/GameView.vue';
 import { useGameStore } from './stores/useGameStore';
 
 const store = useGameStore();
-const { startSolo, startMulti, setPlayerName } = store;
+const { startSolo, setPlayerName } = store;
 const view = ref<'landing' | 'game'>('landing');
 
 const handleSolo = (pseudo: string) => {
   setPlayerName(pseudo);
   startSolo();
-  view.value = 'game';
-};
-
-const handleMulti = (pseudo: string) => {
-  setPlayerName(pseudo);
-  startMulti(20);
   view.value = 'game';
 };
 </script>
