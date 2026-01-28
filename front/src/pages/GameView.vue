@@ -1,23 +1,26 @@
 <template>
-  <div class="flex min-h-[100dvh] flex-col bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900 text-slate-100">
-    <div class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
+  <div
+    class="flex h-[100dvh] flex-col overflow-hidden bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900 text-slate-100"
+  >
+    <div class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-3 overflow-y-auto px-4 py-4 min-h-0">
       <div class="grid gap-3 lg:grid-cols-[1.6fr_1fr]">
         <ScoreHeader />
         <WordHistory />
       </div>
 
       <div
-        v-if="overflowCountdown !== null"
         class="rounded-2xl border border-[color:var(--color-accent)]/40 bg-amber-400/10 px-4 py-3 text-center text-sm font-semibold text-amber-100 shadow-md"
+        :class="overflowCountdown !== null ? 'visible' : 'invisible'"
+        :aria-hidden="overflowCountdown === null"
       >
-        Rack plein : encore {{ overflowCountdown }}s pour valider un mot !
+        Rack plein : encore {{ overflowCountdown ?? 0 }}s pour valider un mot !
         <q-linear-progress
-          v-if="overflowCountdown <= 5"
           class="mt-3"
           rounded
           size="8px"
           color="warning"
           track-color="dark"
+          :class="overflowCountdown !== null && overflowCountdown <= 5 ? 'opacity-100' : 'opacity-0'"
           :value="overflowProgress"
         />
       </div>
@@ -81,7 +84,7 @@
 
     </div>
 
-    <div class="shrink-0">
+    <div class="mt-auto shrink-0">
       <GameBoard />
     </div>
   </div>
