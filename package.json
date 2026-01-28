@@ -1,0 +1,16 @@
+{
+  "name": "lexiflood",
+  "private": true,
+  "workspaces": [
+    "api",
+    "front"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w api",
+    "dev:front": "npm run dev -w front",
+    "dev:all": "npm-run-all --parallel dev:api dev:front"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
+  }
+}
