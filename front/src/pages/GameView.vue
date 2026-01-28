@@ -79,9 +79,6 @@
         </div>
       </div>
 
-      <div class="rounded-2xl border border-slate-800/80 bg-slate-900/70 p-3 text-[11px] text-slate-400">
-        Astuce : choisissez rapidement vos lettres pour éviter que la grille ne se remplisse.
-      </div>
     </div>
 
     <div class="shrink-0">

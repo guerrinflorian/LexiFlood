@@ -1,6 +1,6 @@
 <template>
   <section
-    class="flex max-h-48 flex-col overflow-hidden rounded-2xl border border-slate-800/80 bg-[color:var(--color-surface)] p-4 text-xs text-slate-200 shadow-lg backdrop-blur"
+    class="flex h-48 flex-col overflow-hidden rounded-2xl border border-slate-800/80 bg-[color:var(--color-surface)] p-4 text-xs text-slate-200 shadow-lg backdrop-blur"
     aria-label="Historique des mots"
   >
     <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
