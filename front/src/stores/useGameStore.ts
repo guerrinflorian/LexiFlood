@@ -1,3 +1,4 @@
+import { Notify } from 'quasar';
 import { defineStore } from 'pinia';
 import words from 'an-array-of-french-words';
 
@@ -32,9 +33,38 @@ const LETTER_WEIGHTS: Record<string, number> = {
 
 const MAX_SLOTS = 20;
 const INITIAL_LETTERS = 5;
-const SPAWN_INTERVAL_MS = 1500;
+const SPAWN_INTERVAL_MS = 2500;
 const OVERFLOW_COUNTDOWN_SECONDS = 5;
 const PLAYER_NAME = 'LexiHero';
+
+const LETTER_POINTS: Record<string, number> = {
+  A: 1,
+  E: 1,
+  I: 1,
+  L: 1,
+  N: 1,
+  O: 1,
+  R: 1,
+  S: 1,
+  T: 1,
+  U: 1,
+  D: 2,
+  G: 2,
+  M: 2,
+  B: 2,
+  C: 2,
+  P: 2,
+  F: 3,
+  H: 3,
+  V: 3,
+  W: 3,
+  Y: 3,
+  J: 5,
+  Q: 5,
+  K: 5,
+  X: 5,
+  Z: 5
+};
 
 const createSlots = () =>
   Array.from({ length: MAX_SLOTS }, (_, index) => ({
@@ -63,6 +93,56 @@ const normalizeWord = (value: string) =>
 
 const DICTIONARY = new Set(words.map((word) => normalizeWord(word)).filter(Boolean));
 
+const getLengthModifiers = (length: number) => {
+  if (length === 2) {
+    return { multiplier: 0.5, bonus: 0 };
+  }
+  if (length === 3) {
+    return { multiplier: 1, bonus: 0 };
+  }
+  if (length === 4) {
+    return { multiplier: 1.1, bonus: 5 };
+  }
+  if (length === 5) {
+    return { multiplier: 1.2, bonus: 10 };
+  }
+  if (length === 6) {
+    return { multiplier: 1.3, bonus: 20 };
+  }
+  if (length === 7) {
+    return { multiplier: 1.4, bonus: 30 };
+  }
+  if (length >= 8) {
+    return { multiplier: 1.5, bonus: 50 };
+  }
+  return { multiplier: 1, bonus: 0 };
+};
+
+const computeScore = (word: string) => {
+  const letters = word.split('');
+  const letterSum = letters.reduce((sum, letter) => sum + (LETTER_POINTS[letter] ?? 0), 0);
+  const { multiplier, bonus } = getLengthModifiers(word.length);
+  return Math.floor(letterSum * multiplier + bonus);
+};
+
+const notifyError = (message: string) => {
+  Notify.create({
+    message,
+    color: 'negative',
+    position: 'top',
+    timeout: 2200
+  });
+};
+
+const notifySuccess = (message: string) => {
+  Notify.create({
+    message,
+    color: 'positive',
+    position: 'top',
+    timeout: 1800
+  });
+};
+
 let spawnInterval: ReturnType<typeof setInterval> | null = null;
 let overflowInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -79,7 +159,8 @@ export const useGameStore = defineStore('game', {
     lastValidation: '' as string | null,
     lastValidationStatus: null as 'success' | 'error' | null,
     errorIndices: [] as number[],
-    overflowCountdown: null as number | null
+    overflowCountdown: null as number | null,
+    usedWords: [] as string[]
   }),
   getters: {
     currentWord(state) {
@@ -103,6 +184,7 @@ export const useGameStore = defineStore('game', {
       this.lastValidationStatus = null;
       this.errorIndices = [];
       this.overflowCountdown = null;
+      this.usedWords = [];
       if (spawnInterval) {
         clearInterval(spawnInterval);
         spawnInterval = null;
@@ -237,13 +319,22 @@ export const useGameStore = defineStore('game', {
       if (this.hasSubmittedThisRound) {
         this.lastValidation = 'Un seul mot autorisé par round.';
         this.lastValidationStatus = 'error';
+        notifyError(this.lastValidation);
         return;
       }
       const word = this.currentWord;
-      const isValid = DICTIONARY.has(normalizeWord(word));
+      const normalizedWord = normalizeWord(word);
+      const isValid = DICTIONARY.has(normalizedWord);
+      if (this.usedWords.includes(normalizedWord)) {
+        this.lastValidation = `${word} a déjà été joué.`;
+        this.lastValidationStatus = 'error';
+        notifyError(this.lastValidation);
+        return;
+      }
       if (isValid && word.length > 0) {
-        const points = word.length * word.length;
+        const points = computeScore(normalizedWord);
         this.score += points;
+        this.usedWords.push(normalizedWord);
         this.selectedIndices.forEach((index) => {
           this.slots[index].letter = null;
           this.slots[index].selected = false;
@@ -251,6 +342,7 @@ export const useGameStore = defineStore('game', {
         this.selectedIndices = [];
         this.lastValidation = `+${points} points pour ${word}`;
         this.lastValidationStatus = 'success';
+        notifySuccess(this.lastValidation);
         this.hasSubmittedThisRound = true;
         if (this.score > this.highScore) {
           this.highScore = this.score;
@@ -260,6 +352,7 @@ export const useGameStore = defineStore('game', {
       } else {
         this.lastValidation = `${word} n'est pas valide.`;
         this.lastValidationStatus = 'error';
+        notifyError(this.lastValidation);
         this.errorIndices = [...this.selectedIndices];
         setTimeout(() => {
           this.errorIndices = [];

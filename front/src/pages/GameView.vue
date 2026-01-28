@@ -31,6 +31,13 @@
               </button>
               <button
                 type="button"
+                class="rounded-xl border border-slate-700/70 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white"
+                @click="confirmQuit"
+              >
+                Quitter
+              </button>
+              <button
+                type="button"
                 class="rounded-xl bg-emerald-400/90 px-4 py-2 text-sm font-semibold text-slate-950 shadow-md shadow-emerald-400/20 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-300"
                 :disabled="gameOver || currentWord.length === 0 || hasSubmittedThisRound"
                 @click="submitWord"
@@ -44,22 +51,7 @@
           </p>
         </div>
 
-        <!-- Feedback de validation -->
-        <div
-          v-if="lastValidation"
-          class="rounded-2xl border px-4 py-3 text-sm"
-          :class="lastValidationStatus === 'success'
-            ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-100'
-            : 'border-rose-400/40 bg-rose-400/10 text-rose-200'"
-        >
-          {{ lastValidation }}
-        </div>
-
-        <!-- Game Over -->
-        <div
-          v-if="gameOver"
-          class="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-center text-base font-semibold text-rose-200 sm:text-lg"
-        >
+        <div v-if="gameOver" class="text-center text-sm text-rose-200">
           Partie terminée
         </div>
       </div>
@@ -75,13 +67,67 @@
 </template>
 
 <script setup lang="ts">
+import { useQuasar } from 'quasar';
 import { storeToRefs } from 'pinia';
+import { ref, watch } from 'vue';
 import GameBoard from '../components/GameBoard.vue';
 import ScoreHeader from '../components/ScoreHeader.vue';
 import { useGameStore } from '../stores/useGameStore';
 
+const emit = defineEmits<{ (event: 'quit'): void }>();
+
 const store = useGameStore();
-const { currentWord, lastValidation, lastValidationStatus, gameOver, overflowCountdown, hasSubmittedThisRound } =
-  storeToRefs(store);
-const { clearSelection, submitWord } = store;
+const {
+  currentWord,
+  lastValidation,
+  gameOver,
+  overflowCountdown,
+  hasSubmittedThisRound,
+  score,
+  highScore
+} = storeToRefs(store);
+const { clearSelection, submitWord, startSolo, resetGame } = store;
+const $q = useQuasar();
+const dialogVisible = ref(false);
+
+const showGameOverDialog = () => {
+  if (dialogVisible.value) {
+    return;
+  }
+  dialogVisible.value = true;
+  $q.dialog({
+    title: 'Défaite',
+    message: `${lastValidation.value ?? 'Partie terminée.'}\nScore : ${score.value}\nMeilleur score : ${highScore.value}`,
+    ok: { label: 'Rejouer', color: 'primary' },
+    cancel: { label: "Retour à l'accueil", color: 'secondary' },
+    persistent: true
+  })
+    .onOk(() => {
+      dialogVisible.value = false;
+      startSolo();
+    })
+    .onCancel(() => {
+      dialogVisible.value = false;
+      resetGame();
+      emit('quit');
+    });
+};
+
+const confirmQuit = () => {
+  $q.dialog({
+    title: 'Quitter la partie ?',
+    message: 'Votre progression sera perdue.',
+    ok: { label: 'Quitter', color: 'negative' },
+    cancel: { label: 'Continuer', color: 'secondary' }
+  }).onOk(() => {
+    resetGame();
+    emit('quit');
+  });
+};
+
+watch(gameOver, (value) => {
+  if (value) {
+    showGameOverDialog();
+  }
+});
 </script>
