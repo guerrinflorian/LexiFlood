@@ -1,6 +1,6 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
-import { Dialog, Notify, Quasar } from 'quasar';
+import { Dialog, Notify, Quasar, QBtn, QLinearProgress } from 'quasar';
 import '@quasar/extras/material-icons/material-icons.css';
 import 'quasar/src/css/index.sass';
 import './assets/tailwind.css';
@@ -10,7 +10,8 @@ const app = createApp(App);
 
 app.use(createPinia());
 app.use(Quasar, {
-  plugins: { Dialog, Notify }
+  plugins: { Dialog, Notify },
+  components: { QBtn, QLinearProgress }
 });
 
 app.mount('#app');
