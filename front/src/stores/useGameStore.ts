@@ -160,7 +160,13 @@ export const useGameStore = defineStore('game', {
     lastValidationStatus: null as 'success' | 'error' | null,
     errorIndices: [] as number[],
     overflowCountdown: null as number | null,
-    usedWords: [] as string[]
+    usedWords: [] as string[],
+    wordHistory: [] as Array<{
+      id: number;
+      word: string;
+      points: number;
+      time: string;
+    }>
   }),
   getters: {
     currentWord(state) {
@@ -185,6 +191,7 @@ export const useGameStore = defineStore('game', {
       this.errorIndices = [];
       this.overflowCountdown = null;
       this.usedWords = [];
+      this.wordHistory = [];
       if (spawnInterval) {
         clearInterval(spawnInterval);
         spawnInterval = null;
@@ -333,8 +340,23 @@ export const useGameStore = defineStore('game', {
       }
       if (isValid && word.length > 0) {
         const points = computeScore(normalizedWord);
+        const timestamp = new Date();
+        const timeLabel = timestamp.toLocaleTimeString('fr-FR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
         this.score += points;
         this.usedWords.push(normalizedWord);
+        this.wordHistory = [
+          {
+            id: timestamp.getTime(),
+            word: word.toUpperCase(),
+            points,
+            time: timeLabel
+          },
+          ...this.wordHistory
+        ].slice(0, 8);
         this.selectedIndices.forEach((index) => {
           this.slots[index].letter = null;
           this.slots[index].selected = false;
