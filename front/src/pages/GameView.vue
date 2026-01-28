@@ -11,20 +11,35 @@
 
     <!-- Header fixe en haut -->
     <div class="relative z-10 px-3 pt-3 md:px-4 md:pt-4">
-      <ScoreHeader />
+      <ScoreHeader @quit="confirmQuit" />
     </div>
 
     <!-- Contenu principal : Layout flexible selon la taille d'écran -->
     <div class="relative z-10 flex flex-1 flex-col gap-3 overflow-hidden px-3 py-3 md:grid md:grid-cols-[300px_minmax(0,1fr)_300px] md:px-4 lg:grid-cols-[340px_minmax(0,1fr)_340px]">
       <div class="hidden md:block md:col-start-1" aria-hidden="true"></div>
+      
       <!-- Colonne principale : Mot + Actions -->
-      <div class="flex min-h-0 flex-col gap-3 overflow-y-auto scrollbar-thin scrollbar-track-slate-950/50 scrollbar-thumb-slate-700/50 md:col-start-2">
-        <!-- Zone du mot en cours -->
-        <div class="flex-shrink-0 p-4 md:p-5">
-          <div class="futuristic-inner space-y-3 p-4 text-center md:p-5">
+      <div class="flex min-h-0 flex-col items-center justify-center gap-3 overflow-y-auto scrollbar-thin scrollbar-track-slate-950/50 scrollbar-thumb-slate-700/50 md:col-start-2">
+        <!-- Zone du mot en cours avec boutons de chaque côté -->
+        <div class="flex w-full max-w-4xl items-center justify-center gap-4 p-4">
+          <!-- Bouton Effacer à gauche -->
+          <q-btn
+            outline
+            round
+            color="secondary"
+            class="!h-14 !w-14 md:!h-16 md:!w-16"
+            icon="backspace"
+            size="18px"
+            @click="clearSelection"
+          >
+            <q-tooltip class="text-xs">Effacer</q-tooltip>
+          </q-btn>
+
+          <!-- Mot en cours au centre -->
+          <div class="futuristic-inner flex-1 space-y-3 p-6 text-center md:p-8">
             <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">Mot en cours</p>
             
-            <p class="futuristic-glow flex min-h-[3rem] items-center justify-center text-3xl font-bold tracking-wide text-white md:min-h-[3.5rem] md:text-4xl" style="font-family: 'Orbitron', 'Rajdhani', 'Exo 2', monospace;">
+            <p class="futuristic-glow flex min-h-[3rem] items-center justify-center text-4xl font-bold tracking-wide text-white md:min-h-[3.5rem] md:text-5xl" style="font-family: 'Orbitron', 'Rajdhani', 'Exo 2', monospace;">
               {{ currentWord || '—' }}
             </p>
             
@@ -41,37 +56,19 @@
             </div>
           </div>
 
-          <!-- Boutons d'action -->
-          <div class="mt-4 flex flex-wrap justify-center gap-2">
-            <q-btn
-              outline
-              rounded
-              color="secondary"
-              class="min-w-[100px] px-4 font-semibold md:min-w-[120px]"
-              label="Effacer"
-              icon-right="backspace"
-              @click="clearSelection"
-            />
-            <q-btn
-              outline
-              rounded
-              color="accent"
-              class="min-w-[100px] px-4 font-semibold md:min-w-[120px]"
-              label="Quitter"
-              icon-right="logout"
-              @click="confirmQuit"
-            />
-            <q-btn
-              unelevated
-              rounded
-              color="primary"
-              class="futuristic-btn min-w-[100px] px-4 font-bold text-slate-950 md:min-w-[120px]"
-              label="Valider"
-              icon-right="check_circle"
-              :disable="gameOver || currentWord.length === 0"
-              @click="submitWord"
-            />
-          </div>
+          <!-- Bouton Valider à droite -->
+          <q-btn
+            unelevated
+            round
+            color="primary"
+            class="futuristic-btn !h-14 !w-14 text-slate-950 md:!h-16 md:!w-16"
+            icon="check_circle"
+            size="18px"
+            :disable="gameOver || currentWord.length === 0"
+            @click="submitWord"
+          >
+            <q-tooltip class="text-xs">Valider</q-tooltip>
+          </q-btn>
         </div>
       </div>
 

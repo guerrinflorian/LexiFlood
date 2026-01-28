@@ -1,21 +1,34 @@
 <template>
-  <div class="relative flex h-12 items-center gap-2 p-2 pr-16 md:h-14 md:p-3 md:pr-20">
-    <!-- Badges info - avec min-width 0 pour permettre le shrink -->
-    <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-      <!-- Meilleur score -->
-      <div class="flex flex-shrink-0 items-center gap-1.5 rounded-full border border-slate-700/50 bg-slate-900/70 px-3 py-1.5 text-xs transition-all hover:border-slate-600/60 hover:bg-slate-800/80">
-        <span class="text-lg">🏆</span>
-        <span class="hidden text-slate-400 sm:inline">Meilleur</span>
-        <span class="font-bold text-white">{{ highScore }}</span>
+  <div class="relative flex h-12 items-center gap-2 p-2 md:h-14 md:p-3">
+    <!-- Section gauche : Bouton Quitter + Score -->
+    <div class="flex items-center gap-3 flex-shrink-0">
+      <q-btn
+        outline
+        rounded
+        color="accent"
+        class="px-3 py-1.5 text-sm font-semibold md:px-5 md:py-2"
+        label="Quitter"
+        icon="logout"
+        size="sm"
+        @click="$emit('quit')"
+      />
+      
+      <!-- Cercle de score collé à droite du bouton -->
+      <div class="score-circle">
+        <span class="score-label">Score</span>
+        <span class="score-value">{{ score }}</span>
       </div>
+    </div>
 
+    <!-- Badges info au centre - avec min-width 0 pour permettre le shrink -->
+    <div class="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-2">
       <!-- Statut en cours -->
       <div class="flex flex-shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/30 bg-gradient-to-br from-emerald-900/25 to-emerald-950/20 px-3 py-1.5 text-xs">
         <span class="relative flex h-2 w-2">
           <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
           <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
         </span>
-        <span class="font-semibold text-emerald-100">En cours</span>
+        <span class="font-semibold text-emerald-100">Partie en cours</span>
       </div>
 
       <!-- Progress bar - prend l'espace disponible mais ne dépasse pas -->
@@ -25,7 +38,7 @@
           class="progress-container flex h-7 min-w-0 flex-1 items-center gap-2 rounded-full border border-amber-500/50 bg-gradient-to-r from-orange-900/30 to-orange-950/20 px-3 py-1.5 backdrop-blur"
         >
           <span class="flex-shrink-0 text-lg">⚠️</span>
-          <span class="flex-shrink-0 text-xs font-bold tabular-nums text-amber-100">{{ overflowCountdown }}s</span>
+          <span class="flex-shrink-0 text-xs font-bold tabular-nums text-amber-100">{{ displayCountdown }}s</span>
           <div class="min-w-0 flex-1">
             <q-linear-progress
               rounded
@@ -38,12 +51,6 @@
         </div>
       </transition>
     </div>
-
-    <!-- Cercle de score -->
-    <div class="score-circle">
-      <span class="score-label">Score</span>
-      <span class="score-value">{{ score }}</span>
-    </div>
   </div>
 </template>
 
@@ -52,24 +59,30 @@ import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useGameStore } from '../stores/useGameStore';
 
+defineEmits<{ (event: 'quit'): void }>();
+
 const store = useGameStore();
-const { score, highScore, overflowCountdown } = storeToRefs(store);
+const { score, overflowCountdown } = storeToRefs(store);
+
+const displayCountdown = computed(() => {
+  if (overflowCountdown.value === null) {
+    return 0;
+  }
+  return Math.max(0, overflowCountdown.value - 1);
+});
 
 const overflowProgress = computed(() => {
   if (overflowCountdown.value === null) {
     return 0;
   }
-  return Math.min(1, Math.max(0, overflowCountdown.value / 5));
+  // Utilise displayCountdown au lieu de overflowCountdown pour la progress bar
+  return Math.min(1, Math.max(0, displayCountdown.value / 5));
 });
 </script>
 
 <style scoped>
 /* Cercle de score */
 .score-circle {
-  position: absolute;
-  right: 0.5rem;
-  top: 50%;
-  transform: translateY(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -92,7 +105,7 @@ const overflowProgress = computed(() => {
     0 6px 8px -1px rgba(0, 0, 0, 0.3),
     0 0 30px rgba(59, 130, 246, 0.5),
     inset 0 2px 4px rgba(0, 0, 0, 0.2);
-  transform: translateY(-50%) scale(1.05);
+  transform: scale(1.05);
 }
 
 .score-label {
@@ -162,7 +175,6 @@ const overflowProgress = computed(() => {
   .score-circle {
     width: 3.5rem;
     height: 3.5rem;
-    right: 0.75rem;
   }
 
   .score-value {
