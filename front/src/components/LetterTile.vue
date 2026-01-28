@@ -1,21 +1,29 @@
 <template>
   <button
-    class="letter-tile group flex w-full items-center justify-center rounded-lg border border-slate-700/70 bg-slate-900/70 text-base font-bold text-white shadow-md backdrop-blur transition duration-200 sm:text-lg lg:text-xl"
+    class="letter-tile group relative flex items-center justify-center rounded-lg border transition-all duration-200"
     :class="{
-      'ring-2 ring-amber-300/80 shadow-[0_0_15px_rgba(251,191,36,0.45)] scale-[1.03]': selected,
-      'opacity-40 cursor-not-allowed': disabled,
+      // État sélectionné
+      'border-amber-400/60 bg-gradient-to-br from-amber-500/20 to-amber-600/10 ring-2 ring-amber-400/50 shadow-lg shadow-amber-500/20 scale-[1.02]': selected,
+      // État normal
+      'border-slate-700/50 bg-slate-800/60 hover:border-slate-600 hover:bg-slate-800/80 hover:shadow-md': !selected && !disabled,
+      // État désactivé
+      'opacity-30 cursor-not-allowed': disabled,
+      // Animations
       'letter-error': error,
       'letter-drop': isNew,
-      'hover:ring-2 hover:ring-amber-300/70 hover:shadow-[0_0_12px_rgba(251,191,36,0.35)]': !disabled && !selected
     }"
     :disabled="disabled"
     type="button"
     @click="$emit('toggle')"
   >
-    <span v-if="letter" class="drop-shadow-[0_2px_8px_rgba(56,189,248,0.35)]">
+    <span 
+      v-if="letter" 
+      class="text-xl font-bold text-white drop-shadow-sm sm:text-2xl md:text-3xl"
+      :class="{ 'text-amber-100': selected }"
+    >
       {{ letter }}
     </span>
-    <span v-else class="text-slate-600/60">•</span>
+    <span v-else class="text-2xl text-slate-700/50 sm:text-3xl">•</span>
   </button>
 </template>
 
@@ -34,20 +42,42 @@ defineEmits(['toggle']);
 <style scoped>
 .letter-tile {
   aspect-ratio: 1 / 1;
+  min-height: 60px;
+}
+
+@media (min-width: 640px) {
+  .letter-tile {
+    min-height: 70px;
+  }
+}
+
+@media (min-width: 768px) {
+  .letter-tile {
+    min-height: 80px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .letter-tile {
+    min-height: 90px;
+  }
 }
 
 .letter-drop {
-  animation: drop-in 0.35s ease;
+  animation: drop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .letter-error {
-  animation: flash 0.35s ease;
+  animation: shake 0.4s ease, flash 0.4s ease;
 }
 
 @keyframes drop-in {
   0% {
-    transform: translateY(-12px) scale(0.95);
-    opacity: 0.4;
+    transform: translateY(-20px) scale(0.8);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(5px) scale(1.05);
   }
   100% {
     transform: translateY(0) scale(1);
@@ -55,14 +85,26 @@ defineEmits(['toggle']);
   }
 }
 
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
 @keyframes flash {
-  0%,
-  100% {
+  0%, 100% {
     box-shadow: 0 0 0 rgba(248, 113, 113, 0);
+    border-color: rgba(248, 113, 113, 0);
   }
   50% {
-    box-shadow: 0 0 20px rgba(248, 113, 113, 0.9);
-    border-color: rgba(248, 113, 113, 0.9);
+    box-shadow: 0 0 24px rgba(248, 113, 113, 0.8), inset 0 0 12px rgba(248, 113, 113, 0.3);
+    border-color: rgba(248, 113, 113, 0.8);
   }
 }
 </style>

@@ -1,6 +1,7 @@
 <template>
-  <div class="min-h-[100dvh] bg-slate-950 px-4 py-4 text-slate-100">
-    <div class="mx-auto flex w-full max-w-6xl flex min-h-[100dvh] flex-col gap-4 pb-6">
+  <div class="min-h-[100dvh] bg-slate-950 text-slate-100">
+    <!-- Contenu principal avec padding bottom pour la grille fixe -->
+    <div class="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4 pb-48 sm:pb-56">
       <ScoreHeader />
 
       <div
@@ -12,6 +13,7 @@
 
       <div class="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div class="flex flex-col gap-4">
+          <!-- Zone de contrôle -->
           <div class="rounded-2xl bg-slate-900/70 p-4 shadow-lg backdrop-blur">
             <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -38,11 +40,9 @@
                 </button>
               </div>
             </div>
-            <div class="mt-2 flex flex-1 items-end">
-              <GameBoard />
-            </div>
           </div>
 
+          <!-- Feedback de validation -->
           <div
             v-if="lastValidation"
             class="rounded-2xl border px-4 py-3 text-sm"
@@ -53,6 +53,7 @@
             {{ lastValidation }}
           </div>
 
+          <!-- Game Over -->
           <div
             v-if="gameOver"
             class="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-center text-base font-semibold text-rose-200 sm:text-lg"
@@ -70,6 +71,9 @@
         Astuce : choisissez rapidement vos lettres pour éviter que la grille ne se remplisse.
       </div>
     </div>
+
+    <!-- Grille de lettres fixée en bas -->
+    <GameBoard />
   </div>
 </template>
 
