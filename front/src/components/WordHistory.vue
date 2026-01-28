@@ -1,12 +1,12 @@
 <template>
   <section
-    class="flex h-full max-h-48 flex-col rounded-2xl border border-slate-800/80 bg-[color:var(--color-surface)] p-4 text-xs text-slate-200 shadow-lg backdrop-blur"
+    class="flex max-h-48 flex-col overflow-hidden rounded-2xl border border-slate-800/80 bg-[color:var(--color-surface)] p-4 text-xs text-slate-200 shadow-lg backdrop-blur"
     aria-label="Historique des mots"
   >
     <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
       Historique
     </p>
-    <ul v-if="displayHistory.length" class="space-y-2">
+    <ul v-if="displayHistory.length" class="flex-1 space-y-2 overflow-y-auto pr-1">
       <li
         v-for="entry in displayHistory"
         :key="entry.id"
