@@ -2,34 +2,36 @@ import { Notify } from 'quasar';
 import { defineStore } from 'pinia';
 import words from 'an-array-of-french-words';
 
-const LETTER_WEIGHTS: Record<string, number> = {
+const LETTER_BAG_COUNTS: Record<string, number> = {
   E: 15,
   A: 9,
   I: 8,
-  S: 7,
-  N: 7,
-  R: 7,
-  T: 7,
   O: 6,
-  U: 6,
+  U: 5,
+  Y: 2,
+  S: 7,
+  R: 6,
+  T: 6,
+  N: 6,
   L: 5,
   D: 3,
   M: 3,
-  C: 3,
-  P: 3,
-  G: 2,
+  P: 2,
+  C: 2,
   B: 2,
-  V: 2,
-  H: 2,
   F: 2,
+  G: 2,
+  H: 2,
+  V: 1,
   J: 1,
   Q: 1,
   K: 1,
   W: 1,
   X: 1,
-  Y: 1,
   Z: 1
 };
+
+const VOWELS = new Set(['A', 'E', 'I', 'O', 'U', 'Y']);
 
 const MAX_SLOTS = 20;
 const INITIAL_LETTERS = 5;
@@ -74,14 +76,14 @@ const createSlots = () =>
     isNew: false
   }));
 
-const getRandomLetter = () => {
+const buildLetterBag = () => {
   const bag: string[] = [];
-  Object.entries(LETTER_WEIGHTS).forEach(([letter, weight]) => {
-    for (let count = 0; count < weight; count += 1) {
+  Object.entries(LETTER_BAG_COUNTS).forEach(([letter, count]) => {
+    for (let item = 0; item < count; item += 1) {
       bag.push(letter);
     }
   });
-  return bag[Math.floor(Math.random() * bag.length)];
+  return bag;
 };
 
 const normalizeWord = (value: string) =>
@@ -146,6 +148,29 @@ const notifySuccess = (message: string) => {
 let spawnInterval: ReturnType<typeof setInterval> | null = null;
 let overflowInterval: ReturnType<typeof setInterval> | null = null;
 
+const getConsonantStreak = (letters: string[]) => {
+  let streak = 0;
+  for (let index = letters.length - 1; index >= 0; index -= 1) {
+    const letter = letters[index];
+    if (!letter) {
+      break;
+    }
+    if (VOWELS.has(letter)) {
+      break;
+    }
+    streak += 1;
+  }
+  return streak;
+};
+
+const getVowelRatio = (letters: string[]) => {
+  if (!letters.length) {
+    return 0;
+  }
+  const vowelCount = letters.filter((letter) => VOWELS.has(letter)).length;
+  return vowelCount / letters.length;
+};
+
 export const useGameStore = defineStore('game', {
   state: () => ({
     slots: createSlots(),
@@ -161,6 +186,8 @@ export const useGameStore = defineStore('game', {
     errorIndices: [] as number[],
     overflowCountdown: null as number | null,
     usedWords: [] as string[],
+    letterBag: [] as string[],
+    lastSpawnedLetter: null as string | null,
     wordHistory: [] as Array<{
       id: number;
       word: string;
@@ -191,6 +218,8 @@ export const useGameStore = defineStore('game', {
       this.errorIndices = [];
       this.overflowCountdown = null;
       this.usedWords = [];
+      this.letterBag = [];
+      this.lastSpawnedLetter = null;
       this.wordHistory = [];
       if (spawnInterval) {
         clearInterval(spawnInterval);
@@ -203,6 +232,7 @@ export const useGameStore = defineStore('game', {
     },
     startSolo() {
       this.resetGame();
+      this.refillLetterBag();
       this.seedInitialLetters();
       this.startSpawnLoop();
     },
@@ -220,6 +250,60 @@ export const useGameStore = defineStore('game', {
         this.placeRandomLetter();
       }
     },
+    refillLetterBag() {
+      this.letterBag = buildLetterBag();
+    },
+    drawLetterFromBag() {
+      if (this.letterBag.length === 0) {
+        this.refillLetterBag();
+      }
+      const index = Math.floor(Math.random() * this.letterBag.length);
+      return this.letterBag.splice(index, 1)[0];
+    },
+    getRackLetters() {
+      return this.slots
+        .map((slot) => slot.letter)
+        .filter((letter): letter is string => Boolean(letter));
+    },
+    drawSmartLetter() {
+      const rackLetters = this.getRackLetters();
+      const consonantStreak = getConsonantStreak(rackLetters);
+      const vowelRatio = getVowelRatio(rackLetters);
+      let forceVowel = consonantStreak >= 4;
+      let forceConsonant = false;
+
+      if (!forceVowel && rackLetters.length >= 5) {
+        forceConsonant = vowelRatio >= 0.6;
+      }
+
+      if (forceVowel && forceConsonant) {
+        forceVowel = false;
+        forceConsonant = false;
+      }
+
+      const pickCandidate = (shouldBeVowel: boolean | null) => {
+        let candidate = this.drawLetterFromBag();
+        if (shouldBeVowel === null) {
+          return candidate;
+        }
+        let attempts = 0;
+        while (VOWELS.has(candidate) !== shouldBeVowel && attempts < 8) {
+          this.letterBag.push(candidate);
+          candidate = this.drawLetterFromBag();
+          attempts += 1;
+        }
+        return candidate;
+      };
+
+      const desiredVowel = forceVowel ? true : forceConsonant ? false : null;
+      let letter = pickCandidate(desiredVowel);
+      if (this.lastSpawnedLetter && letter === this.lastSpawnedLetter) {
+        this.letterBag.push(letter);
+        letter = pickCandidate(desiredVowel);
+      }
+      this.lastSpawnedLetter = letter;
+      return letter;
+    },
     advanceRound() {
       this.round += 1;
       this.hasSubmittedThisRound = false;
@@ -232,7 +316,7 @@ export const useGameStore = defineStore('game', {
         return false;
       }
       const targetIndex = emptySlots[Math.floor(Math.random() * emptySlots.length)];
-      this.slots[targetIndex].letter = getRandomLetter();
+      this.slots[targetIndex].letter = this.drawSmartLetter();
       this.slots[targetIndex].isNew = true;
       setTimeout(() => {
         if (this.slots[targetIndex]) {
@@ -356,7 +440,7 @@ export const useGameStore = defineStore('game', {
             time: timeLabel
           },
           ...this.wordHistory
-        ].slice(0, 8);
+        ];
         this.selectedIndices.forEach((index) => {
           this.slots[index].letter = null;
           this.slots[index].selected = false;
