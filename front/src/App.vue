@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900 text-slate-100">
     <LandingPage v-if="view === 'landing'" @start-solo="handleSolo" />
-    <GameView v-else />
+    <GameView v-else @quit="handleQuit" />
   </div>
 </template>
 
@@ -12,12 +12,17 @@ import GameView from './pages/GameView.vue';
 import { useGameStore } from './stores/useGameStore';
 
 const store = useGameStore();
-const { startSolo, setPlayerName } = store;
+const { startSolo, setPlayerName, resetGame } = store;
 const view = ref<'landing' | 'game'>('landing');
 
 const handleSolo = (pseudo: string) => {
   setPlayerName(pseudo);
   startSolo();
   view.value = 'game';
+};
+
+const handleQuit = () => {
+  resetGame();
+  view.value = 'landing';
 };
 </script>
