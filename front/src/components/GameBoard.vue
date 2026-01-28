@@ -49,8 +49,8 @@ const { toggleSelect } = store;
 
 .rack-grid {
   display: grid;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(clamp(30px, 8vw, 72px), 1fr));
+  grid-auto-rows: minmax(0, 1fr);
   gap: clamp(6px, 1vw, 12px);
 }
 
