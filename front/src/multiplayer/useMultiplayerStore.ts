@@ -1,11 +1,11 @@
 import { Notify } from 'quasar';
 import { defineStore } from 'pinia';
-import { io, Socket } from 'socket.io-client';
 import { computeScore, isValidWord, normalizeWord } from './wordUtils';
 
 const MAX_SLOTS = 20;
 const OVERFLOW_COUNTDOWN_SECONDS = 5;
 const SOCKET_URL = `http://${window.location.hostname}:3000`;
+const INTERMISSION_TICK_MS = 250;
 
 type Slot = {
   id: number;
@@ -30,6 +30,7 @@ type RoundSnapshot = {
   totalRounds: number;
   targetQualified: number;
   roundStartAt: number;
+  nextRoundStartAt?: number;
   durationMs: number;
   letterIntervalMs: number;
   initialLetters: string[];
@@ -61,9 +62,10 @@ const notifySuccess = (message: string) => {
   });
 };
 
-let socket: Socket | null = null;
+let socket: any = null;
 let countdownInterval: ReturnType<typeof setInterval> | null = null;
 let overflowInterval: ReturnType<typeof setInterval> | null = null;
+let intermissionInterval: ReturnType<typeof setInterval> | null = null;
 
 export const useMultiplayerStore = defineStore('multiplayer', {
   state: () => ({
@@ -79,14 +81,16 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     totalRounds: 0,
     targetQualified: 0,
     roundStartAt: 0,
+    nextRoundStartAt: 0,
     durationMs: 0,
     letterIntervalMs: 0,
     timeLeftMs: 0,
     slots: createSlots(),
     selectedIndices: [] as number[],
     overflowCountdown: null as number | null,
+    intermissionCountdown: null as number | null,
     usedWords: [] as string[],
-    wordHistory: [] as Array<{ id: number; word: string; points: number; time: string }>,
+    wordHistory: [] as Array<{ id: string; playerId: string; playerName: string; points: number; time: string }>,
     lastValidation: null as string | null,
     lastValidationStatus: null as 'success' | 'error' | null,
     errorIndices: [] as number[],
@@ -131,7 +135,12 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       if (socket) {
         return;
       }
-      socket = io(SOCKET_URL, { transports: ['websocket'] });
+      const socketFactory = (typeof window !== 'undefined' ? (window as any).io : undefined);
+      if (!socketFactory) {
+        notifyError('Socket.io indisponible. Vérifiez que le serveur est en ligne.');
+        return;
+      }
+      socket = socketFactory(SOCKET_URL, { transports: ['websocket'] });
 
       socket.on('connect', () => {
         this.playerId = socket?.id ?? '';
@@ -193,7 +202,30 @@ export const useMultiplayerStore = defineStore('multiplayer', {
         this.roundIndex = payload.roundIndex;
         this.totalRounds = payload.totalRounds;
         this.scoreboard = payload.scoreboard ?? [];
+        this.startIntermissionCountdown(payload.nextRoundStartAt);
         this.stopTimers();
+      });
+
+      socket.on('game:word:history', (payload) => {
+        if (!payload) {
+          return;
+        }
+        const timestamp = payload.createdAt ? new Date(payload.createdAt) : new Date();
+        const timeLabel = timestamp.toLocaleTimeString('fr-FR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+        this.wordHistory = [
+          {
+            id: payload.id ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            playerId: payload.playerId ?? '',
+            playerName: payload.playerName ?? 'Joueur',
+            points: payload.points ?? 0,
+            time: timeLabel
+          },
+          ...this.wordHistory
+        ];
       });
 
       socket.on('game:end', (payload) => {
@@ -216,22 +248,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
         }
         const points = payload.points ?? 0;
         const word = payload.word ?? '';
-        const timestamp = new Date();
-        const timeLabel = timestamp.toLocaleTimeString('fr-FR', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        });
         this.usedWords.push(word);
-        this.wordHistory = [
-          {
-            id: timestamp.getTime(),
-            word: word.toUpperCase(),
-            points,
-            time: timeLabel
-          },
-          ...this.wordHistory
-        ];
         this.lastValidation = `+${points} points pour ${word}`;
         this.lastValidationStatus = 'success';
         notifySuccess(this.lastValidation);
@@ -273,13 +290,16 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       this.totalRounds = payload.totalRounds;
       this.targetQualified = payload.targetQualified;
       this.roundStartAt = payload.roundStartAt;
+      this.nextRoundStartAt = 0;
       this.durationMs = payload.durationMs;
       this.letterIntervalMs = payload.letterIntervalMs;
       this.timeLeftMs = payload.durationMs;
       this.resetBoard();
       this.stopTimers();
+      this.stopIntermission();
       this.roundResult = null;
       this.finalResult = null;
+      notifySuccess(`Round ${payload.roundIndex + 1} commence !`);
       const startDelay = Math.max(payload.roundStartAt - Date.now(), 0);
       setTimeout(() => {
         payload.initialLetters.forEach((letter) => {
@@ -296,6 +316,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
         this.totalRounds = payload.totalRounds;
         this.targetQualified = payload.targetQualified ?? 0;
         this.roundStartAt = payload.roundStartAt ?? 0;
+        this.nextRoundStartAt = payload.nextRoundStartAt ?? 0;
         this.durationMs = payload.durationMs ?? 0;
         this.letterIntervalMs = payload.letterIntervalMs ?? 0;
         this.timeLeftMs = payload.durationMs ?? 0;
@@ -304,7 +325,28 @@ export const useMultiplayerStore = defineStore('multiplayer', {
           : [];
         letters.forEach((entry: { letter: string }) => this.applyLetter(entry.letter, { silent: true }));
         this.scoreboard = payload.scoreboard ?? [];
+        const history = Array.isArray(payload.wordHistory) ? payload.wordHistory : [];
+        this.wordHistory = history.map((entry: any) => {
+          const timestamp = entry?.createdAt ? new Date(entry.createdAt) : new Date();
+          const timeLabel = timestamp.toLocaleTimeString('fr-FR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+          });
+          return {
+            id: entry?.id ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            playerId: entry?.playerId ?? '',
+            playerName: entry?.playerName ?? 'Joueur',
+            points: entry?.points ?? 0,
+            time: timeLabel
+          };
+        });
         this.startCountdown();
+        if (payload.status === 'roundEnd') {
+          this.startIntermissionCountdown(payload.nextRoundStartAt);
+        } else {
+          this.stopIntermission();
+        }
       }
       if (payload.status === 'finished') {
         this.phase = 'finished';
@@ -313,6 +355,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
           scoreboard: payload.scoreboard ?? []
         };
         this.scoreboard = payload.scoreboard ?? [];
+        this.stopIntermission();
       }
     },
     startCountdown() {
@@ -343,6 +386,33 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       }
       this.overflowCountdown = null;
     },
+    startIntermissionCountdown(nextRoundStartAt?: number) {
+      if (!nextRoundStartAt) {
+        this.stopIntermission();
+        return;
+      }
+      this.nextRoundStartAt = nextRoundStartAt;
+      if (intermissionInterval) {
+        clearInterval(intermissionInterval);
+      }
+      const updateCountdown = () => {
+        const remainingMs = Math.max(nextRoundStartAt - Date.now(), 0);
+        this.intermissionCountdown = Math.ceil(remainingMs / 1000);
+        if (remainingMs <= 0) {
+          this.stopIntermission();
+        }
+      };
+      updateCountdown();
+      intermissionInterval = setInterval(updateCountdown, INTERMISSION_TICK_MS);
+    },
+    stopIntermission() {
+      if (intermissionInterval) {
+        clearInterval(intermissionInterval);
+        intermissionInterval = null;
+      }
+      this.intermissionCountdown = null;
+      this.nextRoundStartAt = 0;
+    },
     resetBoard() {
       this.slots = createSlots();
       this.selectedIndices = [];
@@ -365,10 +435,12 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       this.roundIndex = 0;
       this.totalRounds = 0;
       this.roundStartAt = 0;
+      this.nextRoundStartAt = 0;
       this.durationMs = 0;
       this.timeLeftMs = 0;
       this.roundResult = null;
       this.finalResult = null;
+      this.stopIntermission();
       this.resetBoard();
     },
     applyLetter(letter: string, options: { silent?: boolean } = {}) {

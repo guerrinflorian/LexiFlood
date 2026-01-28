@@ -64,6 +64,7 @@ const LETTER_POINTS: Record<string, number> = {
 const ROUND_DURATION_MS = 90_000;
 const LETTER_INTERVAL_MS = 2500;
 const INITIAL_LETTERS = 5;
+const INTERMISSION_DURATION_MS = 10_000;
 
 const normalizeWord = (value: string) =>
   value
@@ -214,6 +215,13 @@ type Player = {
 };
 
 type LetterEvent = { tickIndex: number; letter: string };
+type WordHistoryEntry = {
+  id: string;
+  playerId: string;
+  playerName: string;
+  points: number;
+  createdAt: number;
+};
 
 type Room = {
   code: string;
@@ -223,10 +231,12 @@ type Room = {
   roundIndex: number;
   rounds: number[];
   roundStartAt: number | null;
+  nextRoundStartAt: number | null;
   durationMs: number;
   letterIntervalMs: number;
   letterHistory: LetterEvent[];
   initialLetters: string[];
+  wordHistory: WordHistoryEntry[];
   letterTimer: ReturnType<typeof setInterval> | null;
   roundTimer: ReturnType<typeof setTimeout> | null;
 };
@@ -302,7 +312,9 @@ const emitScoreboard = (io: Server, room: Room) => {
 const resetRoundState = (room: Room) => {
   room.letterHistory = [];
   room.initialLetters = [];
+  room.wordHistory = [];
   room.roundStartAt = null;
+  room.nextRoundStartAt = null;
   room.durationMs = ROUND_DURATION_MS;
   room.letterIntervalMs = LETTER_INTERVAL_MS;
 };
@@ -337,6 +349,7 @@ const startRound = (io: Server, room: Room) => {
   });
 
   room.roundStartAt = Date.now() + 1000;
+  room.nextRoundStartAt = null;
 
   const targetQualified = room.rounds[room.roundIndex] ?? 1; // Default to 1 (winner) if index out of bounds
 
@@ -412,17 +425,18 @@ const finishRound = (io: Server, room: Room) => {
 
   const scoreboard = formatScoreboard(room);
 
-  io.to(room.code).emit('game:round:end', {
-    roundIndex: room.roundIndex,
-    totalRounds: room.rounds.length,
-    scoreboard,
-    eliminatedIds: eliminated.map((player) => player.id),
-    qualifiedIds: qualifiers.map((player) => player.id)
-  });
-
   room.roundIndex += 1;
 
   if (room.roundIndex >= room.rounds.length) {
+    room.nextRoundStartAt = null;
+    io.to(room.code).emit('game:round:end', {
+      roundIndex: room.roundIndex - 1,
+      totalRounds: room.rounds.length,
+      scoreboard,
+      eliminatedIds: eliminated.map((player) => player.id),
+      qualifiedIds: qualifiers.map((player) => player.id),
+      nextRoundStartAt: null
+    });
     room.status = 'finished';
     io.to(room.code).emit('game:end', {
       scoreboard,
@@ -439,9 +453,20 @@ const finishRound = (io: Server, room: Room) => {
     return;
   }
 
+  room.nextRoundStartAt = Date.now() + INTERMISSION_DURATION_MS;
+  io.to(room.code).emit('game:round:end', {
+    roundIndex: room.roundIndex - 1,
+    totalRounds: room.rounds.length,
+    scoreboard,
+    eliminatedIds: eliminated.map((player) => player.id),
+    qualifiedIds: qualifiers.map((player) => player.id),
+    nextRoundStartAt: room.nextRoundStartAt
+  });
+
+  const delay = Math.max(room.nextRoundStartAt - Date.now(), 0);
   setTimeout(() => {
     startRound(io, room);
-  }, 4000);
+  }, delay);
 };
 
 const sendSnapshot = (socket: Socket, room: Room) => {
@@ -452,10 +477,12 @@ const sendSnapshot = (socket: Socket, room: Room) => {
     totalRounds: room.rounds.length,
     targetQualified: room.rounds[room.roundIndex] ?? 1,
     roundStartAt: room.roundStartAt,
+    nextRoundStartAt: room.nextRoundStartAt,
     durationMs: room.durationMs,
     letterIntervalMs: room.letterIntervalMs,
     letterHistory: room.letterHistory,
     initialLetters: room.initialLetters,
+    wordHistory: room.wordHistory,
     scoreboard,
     winnerId: room.status === 'finished' ? scoreboard[0]?.id ?? null : null
   });
@@ -510,10 +537,12 @@ export const registerMultiplayer = (io: Server) => {
         roundIndex: 0,
         rounds: [],
         roundStartAt: null,
+        nextRoundStartAt: null,
         durationMs: ROUND_DURATION_MS,
         letterIntervalMs: LETTER_INTERVAL_MS,
         letterHistory: [],
         initialLetters: [],
+        wordHistory: [],
         letterTimer: null,
         roundTimer: null
       };
@@ -666,6 +695,15 @@ export const registerMultiplayer = (io: Server) => {
         points,
         score: player.score
       });
+      const historyEntry: WordHistoryEntry = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        playerId: player.id,
+        playerName: player.name,
+        points,
+        createdAt: Date.now()
+      };
+      room.wordHistory.unshift(historyEntry);
+      io.to(room.code).emit('game:word:history', historyEntry);
       emitScoreboard(io, room);
     });
 
