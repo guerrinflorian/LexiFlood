@@ -1,6 +1,6 @@
 <template>
-  <div class="flex h-[100dvh] flex-col overflow-hidden bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900 text-slate-100">
-    <div class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-3 px-4 py-4">
+  <div class="flex min-h-[100dvh] flex-col bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900 text-slate-100">
+    <div class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
       <div class="grid gap-3 lg:grid-cols-[1.6fr_1fr]">
         <ScoreHeader />
         <WordHistory />
@@ -74,7 +74,9 @@
       </div>
     </div>
 
-    <GameBoard class="mt-auto" />
+    <div class="shrink-0">
+      <GameBoard />
+    </div>
   </div>
 </template>
 
