@@ -1,5 +1,5 @@
 <template>
-  <div class="grid w-full grid-cols-4 gap-3">
+  <div class="grid w-full grid-cols-4 gap-2 sm:gap-3">
     <LetterTile
       v-for="(slot, index) in slots"
       :key="slot.id"

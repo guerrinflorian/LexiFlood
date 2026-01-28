@@ -31,7 +31,7 @@ const LETTER_WEIGHTS: Record<string, number> = {
 };
 
 const MAX_SLOTS = 20;
-const SPAWN_INTERVAL_MS = 800;
+const SPAWN_INTERVAL_MS = 1000;
 const ROUND_DURATIONS: Record<number, number> = {
   1: 90,
   2: 90,
