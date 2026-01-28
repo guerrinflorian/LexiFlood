@@ -1,6 +1,8 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import { Server } from 'socket.io';
 import { checkWord } from './dictionary';
+import { registerMultiplayer } from './multiplayer';
 
 const app = Fastify({ logger: true });
 
@@ -20,6 +22,12 @@ const startServer = async () => {
     const valid = checkWord(word);
     return { valid };
   });
+
+  const io = new Server(app.server, {
+    cors: { origin: true }
+  });
+
+  registerMultiplayer(io);
 
   const port = 3000;
   try {
