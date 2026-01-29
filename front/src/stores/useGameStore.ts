@@ -38,6 +38,7 @@ const INITIAL_LETTERS = 5;
 const SPAWN_INTERVAL_MS = 2500;
 const OVERFLOW_COUNTDOWN_SECONDS = 5;
 const PLAYER_NAME = 'LexiHero';
+const PLAYER_NAME_STORAGE_KEY = 'lexiflood_player_name';
 
 const LETTER_POINTS: Record<string, number> = {
   A: 1,
@@ -230,7 +231,11 @@ export const useGameStore = defineStore('game', {
   },
   actions: {
     setPlayerName(name: string) {
-      this.playerName = name.trim() || PLAYER_NAME;
+      const trimmed = name.trim();
+      this.playerName = trimmed || PLAYER_NAME;
+      if (trimmed) {
+        localStorage.setItem(PLAYER_NAME_STORAGE_KEY, trimmed);
+      }
     },
     resetGame() {
       this.slots = createSlots();

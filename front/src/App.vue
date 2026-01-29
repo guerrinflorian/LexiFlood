@@ -12,18 +12,24 @@ import LandingPage from './pages/LandingPage.vue';
 import GameView from './pages/GameView.vue';
 import MultiplayerView from './pages/MultiplayerView.vue';
 import { useGameStore } from './stores/useGameStore';
+import { useMultiplayerStore } from './multiplayer/useMultiplayerStore';
 
 const store = useGameStore();
+const multiplayerStore = useMultiplayerStore();
 const { startSolo, setPlayerName, resetGame } = store;
+const { setPlayerName: setMultiplayerName } = multiplayerStore;
 const view = ref<'landing' | 'solo' | 'multi'>('landing');
 
 const handleSolo = (pseudo: string) => {
   setPlayerName(pseudo);
+  setMultiplayerName(pseudo);
   startSolo();
   view.value = 'solo';
 };
 
-const handleMulti = () => {
+const handleMulti = (pseudo: string) => {
+  setPlayerName(pseudo);
+  setMultiplayerName(pseudo);
   view.value = 'multi';
 };
 
