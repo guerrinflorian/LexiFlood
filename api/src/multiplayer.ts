@@ -61,10 +61,14 @@ const LETTER_POINTS: Record<string, number> = {
   Z: 5
 };
 
-const ROUND_DURATION_MS = 90_000;
+const STANDARD_ROUND_DURATION_MS = 130_000;
+const EXTENDED_ROUND_DURATION_MS = 170_000;
 const LETTER_INTERVAL_MS = 2500;
 const INITIAL_LETTERS = 5;
 const INTERMISSION_DURATION_MS = 10_000;
+
+const getRoundDurationMs = (playerCount: number) =>
+  playerCount <= 3 ? EXTENDED_ROUND_DURATION_MS : STANDARD_ROUND_DURATION_MS;
 
 const normalizeWord = (value: string) =>
   value
@@ -315,7 +319,6 @@ const resetRoundState = (room: Room) => {
   room.wordHistory = [];
   room.roundStartAt = null;
   room.nextRoundStartAt = null;
-  room.durationMs = ROUND_DURATION_MS;
   room.letterIntervalMs = LETTER_INTERVAL_MS;
 };
 
@@ -538,7 +541,7 @@ export const registerMultiplayer = (io: Server) => {
         rounds: [],
         roundStartAt: null,
         nextRoundStartAt: null,
-        durationMs: ROUND_DURATION_MS,
+        durationMs: STANDARD_ROUND_DURATION_MS,
         letterIntervalMs: LETTER_INTERVAL_MS,
         letterHistory: [],
         initialLetters: [],
@@ -654,6 +657,7 @@ export const registerMultiplayer = (io: Server) => {
       }
       room.roundIndex = 0;
       room.rounds = getRoundTargets(activePlayers.length);
+      room.durationMs = getRoundDurationMs(activePlayers.length);
       room.players.forEach((player) => {
         player.eliminated = false;
         player.ko = false;

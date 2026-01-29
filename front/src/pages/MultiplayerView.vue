@@ -8,6 +8,7 @@
       :round-index="roundIndex"
       :total-rounds="totalRounds"
       :time-progress="timeProgress"
+      :time-left-ms="timeLeftMs"
       :my-score="myScore"
       @quit="confirmQuit"
     />
@@ -58,6 +59,7 @@
       v-if="phase === 'finished'"
       :winner-name="winnerName"
       :final-scoreboard="finalScoreboard"
+      @back-to-menu="returnToMenu"
     />
 
     <div v-if="phase !== 'entry' && phase !== 'lobby'" class="relative z-10 border-t border-slate-800/50 bg-gradient-to-t from-slate-950/98 via-slate-950/95 to-transparent px-3 pb-4 pt-3 backdrop-blur-md md:px-4 md:pb-5">
@@ -69,7 +71,7 @@
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
 import { storeToRefs } from 'pinia';
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import backgroundGame from '../assets/background_game.png';
 import GameBackground from '../components/GameBackground.vue';
 import MultiplayerBoard from '../multiplayer/components/MultiplayerBoard.vue';
@@ -103,10 +105,39 @@ const {
   finalResult,
   playerName
 } = storeToRefs(store);
-const { createRoom, joinRoom, startGame, submitWord, clearSelection, leaveRoom } = store;
+const {
+  createRoom,
+  joinRoom,
+  startGame,
+  submitWord,
+  clearSelection,
+  leaveRoom,
+  selectLetterFromKeyboard,
+  removeLastSelectedLetter
+} = store;
 
 const roomInput = ref('');
 const $q = useQuasar();
+const handleKeydown = (event: KeyboardEvent) => {
+  const target = event.target as HTMLElement | null;
+  if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+    return;
+  }
+  if (event.key === 'Backspace') {
+    event.preventDefault();
+    removeLastSelectedLetter();
+    return;
+  }
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    submitWord();
+    return;
+  }
+  if (event.key.length === 1 && /[a-zA-Z]/.test(event.key)) {
+    event.preventDefault();
+    selectLetterFromKeyboard(event.key);
+  }
+};
 
 const myScore = computed(() => {
   const me = scoreboard.value.find((p) => p.id === playerId.value);
@@ -216,4 +247,16 @@ const confirmQuit = () => {
     emit('quit');
   });
 };
+
+const returnToMenu = () => {
+  emit('quit');
+};
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown);
+});
 </script>

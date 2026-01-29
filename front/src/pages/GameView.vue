@@ -40,7 +40,7 @@
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
 import { storeToRefs } from 'pinia';
-import { ref, watch } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import backgroundGame from '../assets/background_game.png';
 import GameBackground from '../components/GameBackground.vue';
 import GameBoard from '../components/GameBoard.vue';
@@ -60,9 +60,29 @@ const {
   score,
   highScore
 } = storeToRefs(store);
-const { clearSelection, submitWord, startSolo, resetGame } = store;
+const { clearSelection, submitWord, startSolo, resetGame, selectLetterFromKeyboard, removeLastSelectedLetter } = store;
 const $q = useQuasar();
 const dialogVisible = ref(false);
+const handleKeydown = (event: KeyboardEvent) => {
+  const target = event.target as HTMLElement | null;
+  if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+    return;
+  }
+  if (event.key === 'Backspace') {
+    event.preventDefault();
+    removeLastSelectedLetter();
+    return;
+  }
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    submitWord();
+    return;
+  }
+  if (event.key.length === 1 && /[a-zA-Z]/.test(event.key)) {
+    event.preventDefault();
+    selectLetterFromKeyboard(event.key);
+  }
+};
 
 const showGameOverDialog = () => {
   if (dialogVisible.value) {
@@ -111,6 +131,14 @@ watch(gameOver, (value) => {
   if (value) {
     showGameOverDialog();
   }
+});
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown);
 });
 </script>
 

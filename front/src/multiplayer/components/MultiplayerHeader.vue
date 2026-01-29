@@ -31,22 +31,38 @@
     </div>
     <div v-else class="flex-1"></div>
 
-    <div v-if="phase === 'inRound' || phase === 'roundEnd'" class="flex flex-col items-end">
-      <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Mon Score</span>
-      <span class="text-xl font-bold text-emerald-400">{{ myScore }}</span>
+    <div v-if="phase === 'inRound' || phase === 'roundEnd'" class="flex items-center gap-4">
+      <div class="flex flex-col items-end">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Temps</span>
+        <span class="text-lg font-mono font-bold text-cyan-200">{{ formattedTimeLeft }}</span>
+      </div>
+      <div class="flex flex-col items-end">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Mon Score</span>
+        <span class="text-xl font-bold text-emerald-400">{{ myScore }}</span>
+      </div>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { computed } from 'vue';
+
+const props = defineProps<{
   phase: string;
   roomCode: string;
   roundIndex: number;
   totalRounds: number;
   timeProgress: number;
+  timeLeftMs: number;
   myScore: number;
 }>();
 
 const emit = defineEmits<{ (event: 'quit'): void }>();
+
+const formattedTimeLeft = computed(() => {
+  const totalSeconds = Math.max(Math.ceil(props.timeLeftMs / 1000), 0);
+  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+  const seconds = String(totalSeconds % 60).padStart(2, '0');
+  return `${minutes}:${seconds}`;
+});
 </script>

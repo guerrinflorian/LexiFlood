@@ -9,6 +9,16 @@
           <span class="font-semibold text-emerald-300">{{ player.score }} pts</span>
         </li>
       </ul>
+      <div class="mt-6 flex justify-center">
+        <q-btn
+          color="secondary"
+          outline
+          rounded
+          unelevated
+          label="Retour au menu"
+          @click="emit('back-to-menu')"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -25,4 +35,6 @@ defineProps<{
   winnerName: string;
   finalScoreboard: FinalEntry[];
 }>();
+
+const emit = defineEmits<{ (event: 'back-to-menu'): void }>();
 </script>

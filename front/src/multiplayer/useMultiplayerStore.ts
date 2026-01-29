@@ -519,6 +519,38 @@ export const useMultiplayerStore = defineStore('multiplayer', {
         this.selectedIndices.push(index);
       }
     },
+    selectLetterFromKeyboard(letter: string) {
+      if (this.phase !== 'inRound') {
+        return;
+      }
+      const me = this.scoreboard.find((player) => player.id === this.playerId);
+      if (me?.ko || me?.eliminated) {
+        return;
+      }
+      const normalized = letter.toUpperCase();
+      const targetIndex = this.slots.findIndex(
+        (slot) => slot.letter === normalized && !slot.selected
+      );
+      if (targetIndex === -1) {
+        return;
+      }
+      this.slots[targetIndex].selected = true;
+      this.selectedIndices.push(targetIndex);
+    },
+    removeLastSelectedLetter() {
+      if (this.phase !== 'inRound' || this.selectedIndices.length === 0) {
+        return;
+      }
+      const me = this.scoreboard.find((player) => player.id === this.playerId);
+      if (me?.ko || me?.eliminated) {
+        return;
+      }
+      const lastIndex = this.selectedIndices[this.selectedIndices.length - 1];
+      if (this.slots[lastIndex]) {
+        this.slots[lastIndex].selected = false;
+      }
+      this.selectedIndices = this.selectedIndices.slice(0, -1);
+    },
     clearSelection() {
       this.selectedIndices.forEach((index) => {
         if (this.slots[index]) {
