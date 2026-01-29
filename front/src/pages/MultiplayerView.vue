@@ -18,6 +18,11 @@
       :time-progress="timeProgress"
       :time-left-ms="timeLeftMs"
       :my-score="myScore"
+      :my-rank="myRank"
+      :total-players="totalPlayers"
+      :qualification-label="qualificationState.label"
+      :qualification-icon="qualificationState.icon"
+      :qualification-class="qualificationState.className"
       @quit="confirmQuit"
     />
 
@@ -149,6 +154,71 @@ const handleKeydown = (event: KeyboardEvent) => {
 const myScore = computed(() => {
   const me = scoreboard.value.find((p) => p.id === playerId.value);
   return me?.score ?? 0;
+});
+
+const myRank = computed(() => {
+  const me = scoreboard.value.find((p) => p.id === playerId.value);
+  if (!me) {
+    return null;
+  }
+  if (me.position) {
+    return me.position;
+  }
+  const sorted = [...scoreboard.value].sort((a, b) => b.score - a.score);
+  const index = sorted.findIndex((player) => player.id === playerId.value);
+  return index === -1 ? null : index + 1;
+});
+
+const totalPlayers = computed(() => scoreboard.value.length);
+
+const qualificationState = computed(() => {
+  const base = {
+    label: 'En attente',
+    icon: 'hourglass_top',
+    className: 'border-slate-600/60 bg-slate-900/50 text-slate-200'
+  };
+  const me = scoreboard.value.find((player) => player.id === playerId.value);
+  if (!me) {
+    return base;
+  }
+  if (me.eliminated || me.ko) {
+    return {
+      label: 'Éliminé',
+      icon: 'cancel',
+      className: 'border-rose-500/60 bg-rose-500/10 text-rose-200'
+    };
+  }
+  if (phase.value === 'roundEnd' && roundResult.value) {
+    if (roundResult.value.qualifiedIds.includes(playerId.value)) {
+      return {
+        label: 'Qualifié',
+        icon: 'check_circle',
+        className: 'border-emerald-500/60 bg-emerald-500/10 text-emerald-200'
+      };
+    }
+    if (roundResult.value.eliminatedIds.includes(playerId.value)) {
+      return {
+        label: 'Éliminé',
+        icon: 'cancel',
+        className: 'border-rose-500/60 bg-rose-500/10 text-rose-200'
+      };
+    }
+  }
+  if (phase.value === 'inRound' && targetQualified.value > 0 && myRank.value !== null) {
+    if (myRank.value <= targetQualified.value) {
+      return {
+        label: 'Qualifié',
+        icon: 'check_circle',
+        className: 'border-emerald-500/60 bg-emerald-500/10 text-emerald-200'
+      };
+    }
+    return {
+      label: 'Non qualifié',
+      icon: 'priority_high',
+      className: 'border-amber-400/60 bg-amber-400/10 text-amber-200'
+    };
+  }
+  return base;
 });
 
 const timeProgress = computed(() => {

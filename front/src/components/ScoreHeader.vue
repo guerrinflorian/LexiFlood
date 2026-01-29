@@ -12,6 +12,17 @@
       >
         <q-tooltip>Quitter</q-tooltip>
       </q-btn>
+      <q-btn
+        flat
+        round
+        dense
+        color="primary"
+        icon="pause_circle"
+        :disable="gameOver"
+        @click="$emit('pause')"
+      >
+        <q-tooltip>Pause</q-tooltip>
+      </q-btn>
 
       <div class="flex items-center gap-2">
         <div class="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/30 px-3 py-1 text-xs">
@@ -62,10 +73,10 @@ import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useGameStore } from '../stores/useGameStore';
 
-defineEmits<{ (event: 'quit'): void }>();
+defineEmits<{ (event: 'quit'): void; (event: 'pause'): void }>();
 
 const store = useGameStore();
-const { score, overflowCountdown, elapsedTimeFormatted } = storeToRefs(store);
+const { score, overflowCountdown, elapsedTimeFormatted, gameOver } = storeToRefs(store);
 
 const displayCountdown = computed(() => {
   if (overflowCountdown.value === null) {
