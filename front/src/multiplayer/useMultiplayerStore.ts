@@ -6,6 +6,8 @@ const MAX_SLOTS = 20;
 const OVERFLOW_COUNTDOWN_SECONDS = 5;
 const SOCKET_URL = `http://${window.location.hostname}:3000`;
 const INTERMISSION_TICK_MS = 250;
+const PLAYER_NAME_STORAGE_KEY = 'lexiflood_player_name';
+const DEFAULT_PLAYER_NAME = 'LexiHero';
 
 type Slot = {
   id: number;
@@ -71,7 +73,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
   state: () => ({
     phase: 'entry' as 'entry' | 'lobby' | 'inRound' | 'roundEnd' | 'finished',
     roomCode: '' as string,
-    playerName: '' as string,
+    playerName: (localStorage.getItem(PLAYER_NAME_STORAGE_KEY) ?? '') as string,
     playerId: '' as string,
     playerToken: '' as string,
     hostId: '' as string,
@@ -131,6 +133,13 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     }
   },
   actions: {
+    setPlayerName(name: string) {
+      const trimmed = name.trim();
+      this.playerName = trimmed || DEFAULT_PLAYER_NAME;
+      if (trimmed) {
+        localStorage.setItem(PLAYER_NAME_STORAGE_KEY, trimmed);
+      }
+    },
     connect() {
       if (socket) {
         return;
@@ -264,13 +273,13 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     },
     createRoom(name: string) {
       this.connect();
-      this.playerName = name.trim() || 'LexiHero';
+      this.setPlayerName(name);
       socket?.emit('room:create', { name: this.playerName });
     },
     joinRoom(code: string, name: string) {
       this.connect();
       const trimmedCode = code.trim().toUpperCase();
-      this.playerName = name.trim() || 'LexiHero';
+      this.setPlayerName(name);
       const token = localStorage.getItem(`lexiflood_multi_token_${trimmedCode}`) ?? undefined;
       socket?.emit('room:join', { code: trimmedCode, name: this.playerName, token });
     },

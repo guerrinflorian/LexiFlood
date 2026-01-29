@@ -14,7 +14,6 @@
 
     <MultiplayerEntry
       v-if="phase === 'entry'"
-      v-model:pseudo="pseudo"
       v-model:room-input="roomInput"
       @create="handleCreate"
       @join="handleJoin"
@@ -101,11 +100,11 @@ const {
   currentWord,
   wordPreview,
   roundResult,
-  finalResult
+  finalResult,
+  playerName
 } = storeToRefs(store);
 const { createRoom, joinRoom, startGame, submitWord, clearSelection, leaveRoom } = store;
 
-const pseudo = ref('');
 const roomInput = ref('');
 const $q = useQuasar();
 
@@ -189,32 +188,14 @@ watch(
 );
 
 const handleCreate = () => {
-  if (!pseudo.value.trim()) {
-    $q.notify({
-      message: 'Veuillez entrer un pseudo.',
-      color: 'negative',
-      position: 'top',
-      timeout: 2000
-    });
-    return;
-  }
-  createRoom(pseudo.value);
+  createRoom(playerName.value);
 };
 
 const handleJoin = () => {
-  if (!pseudo.value.trim()) {
-    $q.notify({
-      message: 'Veuillez entrer un pseudo.',
-      color: 'negative',
-      position: 'top',
-      timeout: 2000
-    });
-    return;
-  }
   if (!roomInput.value.trim()) {
     return;
   }
-  joinRoom(roomInput.value, pseudo.value);
+  joinRoom(roomInput.value, playerName.value);
 };
 
 

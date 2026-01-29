@@ -7,16 +7,6 @@
       </div>
       <div class="space-y-4">
         <div>
-          <label class="mb-2 block text-left text-xs uppercase tracking-wide text-slate-400">Pseudo</label>
-          <input
-            :value="pseudo"
-            type="text"
-            placeholder="Votre pseudo"
-            class="w-full rounded-xl border border-slate-800 bg-slate-950/80 px-4 py-3 text-base text-white placeholder:text-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
-            @input="handlePseudoInput"
-          />
-        </div>
-        <div>
           <label class="mb-2 block text-left text-xs uppercase tracking-wide text-slate-400">Code room</label>
           <input
             :value="roomInput"
@@ -49,21 +39,15 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{
-  pseudo: string;
+defineProps<{
   roomInput: string;
 }>();
 
 const emit = defineEmits<{
-  (event: 'update:pseudo', value: string): void;
   (event: 'update:roomInput', value: string): void;
   (event: 'create'): void;
   (event: 'join'): void;
 }>();
-
-const handlePseudoInput = (event: Event) => {
-  emit('update:pseudo', (event.target as HTMLInputElement).value);
-};
 
 const handleRoomInput = (event: Event) => {
   emit('update:roomInput', (event.target as HTMLInputElement).value);
