@@ -1,52 +1,89 @@
 <template>
-  <div class="flex min-h-screen flex-col items-center justify-center bg-slate-950 px-6 py-12 text-center text-slate-100">
-    <div class="mb-10">
-      <h1 class="text-5xl font-bold text-white drop-shadow-[0_0_18px_rgba(56,189,248,0.85)] sm:text-6xl">
-        LexiFlood
-      </h1>
-      <p class="mt-3 text-sm text-slate-400 sm:text-base">
-        Un duel de lettres néon entre Tetris et Scrabble, en solo.
-      </p>
-    </div>
+  <div class="relative flex h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 px-4 text-center text-slate-100 sm:px-6">
+    <!-- Image de fond avec opacité -->
+    <div
+      class="pointer-events-none absolute inset-0 z-0 bg-cover bg-center opacity-10"
+      :style="{ backgroundImage: `url(${backgroundMain})` }"
+      aria-hidden="true"
+    ></div>
+    
+    <!-- Effets de fond futuristes -->
+    <div class="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900/20 via-transparent to-transparent"></div>
+    <div class="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-indigo-900/10 via-transparent to-transparent"></div>
 
-    <div class="w-full max-w-md space-y-6">
-      <div class="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg backdrop-blur">
-        <label class="mb-2 block text-left text-xs uppercase tracking-wide text-slate-400">Pseudo</label>
-        <input
-          v-model="pseudo"
-          type="text"
-          minlength="4"
-          maxlength="12"
-          placeholder="Votre pseudo"
-          class="w-full rounded-xl border border-slate-800 bg-slate-950/80 px-4 py-3 text-base text-white placeholder:text-slate-600 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
+    <!-- Contenu principal -->
+    <div class="relative z-10 w-full max-w-md space-y-6 md:max-w-lg md:space-y-8">
+      <!-- Logo -->
+      <div class="flex justify-center">
+        <img 
+          :src="logo" 
+          alt="LexiFlood Logo" 
+          class="h-40 w-40 drop-shadow-[0_0_25px_rgba(56,189,248,0.6)] transition-transform hover:scale-105 sm:h-50 sm:w-50"
         />
-        <p class="mt-2 text-left text-xs text-slate-400">
-          4 à 12 caractères requis.
-        </p>
       </div>
+      
+      <!-- Description -->
+      <p class="text-sm text-slate-300 sm:text-base">
+        Un duel de lettres néon entre <span class="font-semibold text-cyan-400">Tetris</span> et <span class="font-semibold text-indigo-400">Scrabble</span>
+      </p>
 
-      <button
-        type="button"
-        class="w-full rounded-xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-indigo-500 px-4 py-3 text-lg font-semibold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:scale-[1.01] hover:from-cyan-300 hover:via-cyan-400 hover:to-indigo-400 disabled:cursor-not-allowed disabled:opacity-40"
-        :disabled="!isPseudoValid"
-        @click="handleSolo"
-      >
-        Lancer la partie solo
-      </button>
-      <button
-        type="button"
-        class="w-full rounded-xl border border-slate-700 bg-slate-900/70 px-4 py-3 text-lg font-semibold text-white shadow-lg shadow-slate-900/30 transition hover:border-cyan-400/60 hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"
-        :disabled="!isPseudoValid"
-        @click="handleMulti"
-      >
-        Multijoueur
-      </button>
+      <!-- Formulaire -->
+      <div class="space-y-4 md:space-y-5">
+        <!-- Champ pseudo -->
+        <div class="game-card space-y-2 p-4 sm:p-5">
+          <label class="block text-left text-xs font-bold uppercase tracking-wider text-slate-400">
+            Pseudo
+          </label>
+          <input
+            v-model="pseudo"
+            type="text"
+            minlength="4"
+            maxlength="12"
+            placeholder="Entrez votre pseudo"
+            class="w-full rounded-xl border border-slate-700/50 bg-slate-950/80 px-4 py-3 text-base text-white placeholder:text-slate-600 transition-all focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/40 focus:ring-offset-2 focus:ring-offset-slate-900"
+          />
+          <p class="text-left text-xs text-slate-500">
+            Entre 4 et 12 caractères
+          </p>
+        </div>
+
+        <!-- Boutons -->
+        <div class="space-y-3">
+          <!-- Bouton Solo -->
+          <button
+            type="button"
+            class="group w-full rounded-xl bg-gradient-to-r from-cyan-500 via-cyan-600 to-indigo-600 px-5 py-3 text-base font-bold text-white shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 sm:px-6 sm:py-3.5 sm:text-lg"
+            :disabled="!isPseudoValid"
+            @click="handleSolo"
+          >
+            <span class="flex items-center justify-center gap-2">
+              <span>🎮</span>
+              <span>Lancer la partie solo</span>
+            </span>
+          </button>
+
+          <!-- Bouton Multijoueur -->
+          <button
+            type="button"
+            class="group w-full rounded-xl border-2 border-slate-700/70 bg-slate-900/50 px-5 py-3 text-base font-bold text-slate-200 backdrop-blur transition-all hover:border-cyan-400/60 hover:bg-slate-800/50 hover:text-cyan-200 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-700/70 disabled:hover:bg-slate-900/50 disabled:hover:text-slate-200 sm:px-6 sm:py-3.5 sm:text-lg"
+            :disabled="!isPseudoValid"
+            @click="handleMulti"
+          >
+            <span class="flex items-center justify-center gap-2">
+              <span>👥</span>
+              <span>Multijoueur</span>
+            </span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import logo from '../assets/logo.png';
+import backgroundMain from '../assets/background_main.png';
 
 const emit = defineEmits<{
   (event: 'start-solo', pseudo: string): void;
@@ -88,3 +125,27 @@ const handleMulti = () => {
   emit('start-multi', trimmedPseudo.value);
 };
 </script>
+
+<style scoped>
+/* Import Google Fonts pour le titre */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@700&display=swap');
+
+/* Carte de jeu avec effet futuriste */
+.game-card {
+  border-radius: 1rem;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%);
+  border: 1px solid rgba(71, 85, 105, 0.5);
+  box-shadow: 
+    inset 0 2px 10px rgba(0, 0, 0, 0.3),
+    0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.game-card:hover {
+  border-color: rgba(6, 182, 212, 0.3);
+  box-shadow: 
+    inset 0 2px 10px rgba(0, 0, 0, 0.3),
+    0 4px 6px -1px rgba(0, 0, 0, 0.2),
+    0 0 20px rgba(6, 182, 212, 0.15);
+}
+</style>

@@ -1,8 +1,16 @@
 <template>
-  <div class="relative flex min-h-screen flex-col overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-    <GameBackground :image="backgroundGame" />
+  <div class="relative flex h-screen flex-col overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div
+      class="pointer-events-none absolute inset-0 z-0 bg-cover bg-center opacity-30"
+      :style="{ backgroundImage: `url(${backgroundGame})` }"
+      aria-hidden="true"
+    ></div>
+    <!-- Effet de fond futuriste -->
+    <div class="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-900/20 via-transparent to-transparent"></div>
+    <div class="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-blue-900/10 via-transparent to-transparent"></div>
 
     <MultiplayerHeader
+      v-if="phase !== 'entry'"
       :phase="phase"
       :room-code="roomCode"
       :round-index="roundIndex"
@@ -73,7 +81,6 @@ import { useQuasar } from 'quasar';
 import { storeToRefs } from 'pinia';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import backgroundGame from '../assets/background_game.png';
-import GameBackground from '../components/GameBackground.vue';
 import MultiplayerBoard from '../multiplayer/components/MultiplayerBoard.vue';
 import MultiplayerEntry from '../multiplayer/components/MultiplayerEntry.vue';
 import MultiplayerFinalOverlay from '../multiplayer/components/MultiplayerFinalOverlay.vue';

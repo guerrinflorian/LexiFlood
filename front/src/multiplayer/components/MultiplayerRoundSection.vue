@@ -1,6 +1,7 @@
 <template>
-  <section class="relative z-10 flex flex-1 flex-col gap-3 overflow-hidden px-3 pb-3 md:grid md:grid-cols-[300px_minmax(0,1fr)_300px] md:px-4 lg:grid-cols-[340px_minmax(0,1fr)_340px]">
-    <div class="flex max-h-[180px] gap-2 md:hidden">
+  <section class="relative z-10 flex flex-1 flex-col gap-3 overflow-hidden px-3 pb-3 md:grid md:grid-cols-[280px_minmax(0,1fr)_280px] md:px-4 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
+    <!-- Version mobile : Classement et Historique côte à côte en haut -->
+    <div class="flex h-40 flex-shrink-0 gap-2 md:hidden">
       <div class="min-w-0 flex-1">
         <MultiplayerScoreboard
           :scoreboard="scoreboard"
@@ -13,15 +14,15 @@
           :phase="phase"
           :qualified-ids="qualifiedIds"
           :eliminated-ids="eliminatedIds"
-          class="mobile-compact"
         />
       </div>
       <div class="min-w-0 flex-1">
-        <MultiplayerWordHistory class="mobile-compact" />
+        <MultiplayerWordHistory />
       </div>
     </div>
 
-    <div class="min-h-0 max-md:hidden md:col-start-1 md:block">
+    <!-- Version desktop : Classement à gauche -->
+    <div class="hidden min-h-0 md:block md:col-start-1">
       <MultiplayerScoreboard
         :scoreboard="scoreboard"
         :player-id="playerId"
@@ -36,7 +37,8 @@
       />
     </div>
 
-    <div class="flex min-h-0 flex-col items-center justify-center gap-3 overflow-y-auto md:col-start-2">
+    <!-- Colonne principale : Mot + Actions (toujours visible) -->
+    <div class="flex min-h-0 flex-col items-center justify-center gap-3 md:overflow-y-auto md:scrollbar-thin md:scrollbar-track-slate-950/50 md:scrollbar-thumb-slate-700/50 md:col-start-2">
       <WordActionPanel
         :current-word="currentWord"
         :word-preview="wordPreview"
@@ -47,7 +49,8 @@
       />
     </div>
 
-    <div class="min-h-0 max-md:hidden md:col-start-3 md:flex md:min-h-full">
+    <!-- Version desktop : Historique à droite -->
+    <div class="hidden min-h-0 md:flex md:col-start-3">
       <MultiplayerWordHistory />
     </div>
   </section>
@@ -63,10 +66,13 @@ type ScoreboardEntry = {
   name: string;
   score: number;
   position: number;
+  ko: boolean;
+  eliminated: boolean;
+  connected: boolean;
 };
 
 type WordPreview = {
-  status: 'valid' | 'used' | 'invalid' | string;
+  status: 'valid' | 'used' | 'invalid' | 'pending';
   label: string;
   points: number;
 };
@@ -90,46 +96,22 @@ const emit = defineEmits<{ (event: 'clear'): void; (event: 'submit'): void }>();
 </script>
 
 <style scoped>
-.mobile-compact :deep(section) {
-  padding: 0.5rem !important;
-  height: 100%;
+/* Scrollbar personnalisée */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
 }
 
-.mobile-compact :deep(header) {
-  margin-bottom: 0.25rem !important;
+.scrollbar-track-slate-950\/50::-webkit-scrollbar-track {
+  background: rgba(2, 6, 23, 0.5);
+  border-radius: 3px;
 }
 
-.mobile-compact :deep(.text-\[10px\]) {
-  font-size: 8px !important;
+.scrollbar-thumb-slate-700\/50::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.5);
+  border-radius: 3px;
 }
 
-.mobile-compact :deep(.text-xs) {
-  font-size: 9px !important;
-}
-
-.mobile-compact :deep(.text-sm) {
-  font-size: 10px !important;
-}
-
-.mobile-compact :deep(ul) {
-  gap: 0.25rem !important;
-  max-height: 120px !important;
-}
-
-.mobile-compact :deep(li) {
-  padding: 0.25rem 0.5rem !important;
-  font-size: 10px !important;
-}
-
-.mobile-compact :deep(.space-y-2) {
-  gap: 0.25rem !important;
-}
-
-.mobile-compact :deep(.space-y-1\.5) {
-  gap: 0.125rem !important;
-}
-
-.mobile-compact :deep(p) {
-  margin-bottom: 0.125rem !important;
+.scrollbar-thumb-slate-700\/50::-webkit-scrollbar-thumb:hover {
+  background: rgba(51, 65, 85, 0.7);
 }
 </style>
