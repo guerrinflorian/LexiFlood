@@ -18,9 +18,13 @@
         dense
         color="primary"
         icon="pause_circle"
-        :disable="gameOver"
+        :disable="!pauseAvailable || gameOver"
         @click="$emit('pause')"
       >
+        <q-badge v-if="pauseAvailable" color="positive" floating>
+          <q-icon name="check_circle" size="14px" />
+        </q-badge>
+        <q-badge v-else color="grey-7" text-color="white" floating :label="pauseCooldownLabel" />
         <q-tooltip>Pause</q-tooltip>
       </q-btn>
 
@@ -70,13 +74,16 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useGameStore } from '../stores/useGameStore';
 
 defineEmits<{ (event: 'quit'): void; (event: 'pause'): void }>();
 
 const store = useGameStore();
-const { score, overflowCountdown, elapsedTimeFormatted, gameOver } = storeToRefs(store);
+const { score, overflowCountdown, elapsedTimeFormatted, gameOver, paused, pauseCooldownUntil } = storeToRefs(store);
+
+const clockNow = ref(Date.now());
+let clockInterval: ReturnType<typeof setInterval> | null = null;
 
 const displayCountdown = computed(() => {
   if (overflowCountdown.value === null) {
@@ -91,6 +98,35 @@ const overflowProgress = computed(() => {
   }
   // Progress starts full (1.0) and decreases to 0
   return overflowCountdown.value / 5;
+});
+
+const pauseCooldownRemaining = computed(() => {
+  if (!pauseCooldownUntil.value) {
+    return 0;
+  }
+  return Math.max(0, Math.ceil((pauseCooldownUntil.value - clockNow.value) / 1000));
+});
+
+const pauseAvailable = computed(() => !paused.value && pauseCooldownRemaining.value === 0);
+
+const pauseCooldownLabel = computed(() => {
+  const remaining = pauseCooldownRemaining.value;
+  const minutes = Math.floor(remaining / 60);
+  const seconds = (remaining % 60).toString().padStart(2, '0');
+  return `${minutes}:${seconds}`;
+});
+
+onMounted(() => {
+  clockInterval = setInterval(() => {
+    clockNow.value = Date.now();
+  }, 1000);
+});
+
+onBeforeUnmount(() => {
+  if (clockInterval) {
+    clearInterval(clockInterval);
+    clockInterval = null;
+  }
 });
 </script>
 
