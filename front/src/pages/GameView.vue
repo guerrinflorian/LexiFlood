@@ -1,13 +1,6 @@
 <template>
   <div class="relative flex h-screen flex-col overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-    <div
-      class="pointer-events-none absolute inset-0 z-0 bg-cover bg-center opacity-30"
-      :style="{ backgroundImage: `url(${backgroundGame})` }"
-      aria-hidden="true"
-    ></div>
-    <!-- Effet de fond futuriste -->
-    <div class="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-900/20 via-transparent to-transparent"></div>
-    <div class="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-blue-900/10 via-transparent to-transparent"></div>
+    <GameBackground :image="backgroundGame" />
 
     <!-- Header fixe en haut -->
     <div class="relative z-10 px-3 pt-3 md:px-4 md:pt-4">
@@ -21,55 +14,14 @@
       <!-- Colonne principale : Mot + Actions -->
       <div class="flex min-h-0 flex-col items-center justify-center gap-3 overflow-y-auto scrollbar-thin scrollbar-track-slate-950/50 scrollbar-thumb-slate-700/50 md:col-start-2">
         <!-- Zone du mot en cours avec boutons de chaque côté -->
-        <div class="flex w-full max-w-4xl items-center justify-center gap-4 p-4">
-          <!-- Bouton Effacer à gauche -->
-          <q-btn
-            outline
-            round
-            color="secondary"
-            class="!h-14 !w-14 md:!h-16 md:!w-16"
-            icon="backspace"
-            size="18px"
-            @click="clearSelection"
-          >
-            <q-tooltip class="text-xs">Effacer</q-tooltip>
-          </q-btn>
-
-          <!-- Mot en cours au centre -->
-          <div class="futuristic-inner flex-1 space-y-3 p-6 text-center md:p-8">
-            <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">Mot en cours</p>
-            
-            <p class="futuristic-glow flex min-h-[3rem] items-center justify-center text-4xl font-bold tracking-wide text-white md:min-h-[3.5rem] md:text-5xl" style="font-family: 'Orbitron', 'Rajdhani', 'Exo 2', monospace;">
-              {{ currentWord || '—' }}
-            </p>
-            
-            <div class="flex flex-wrap items-center justify-center gap-2">
-              <span
-                class="rounded-full px-3 py-1 text-xs font-bold transition-all"
-                :class="wordPreviewClasses"
-              >
-                {{ wordPreview.label }}
-              </span>
-              <span class="rounded-full border border-slate-700/70 bg-slate-900/70 px-3 py-1 text-xs font-bold text-slate-200">
-                {{ wordPreview.points }} pts
-              </span>
-            </div>
-          </div>
-
-          <!-- Bouton Valider à droite -->
-          <q-btn
-            unelevated
-            round
-            color="primary"
-            class="futuristic-btn !h-14 !w-14 text-slate-950 md:!h-16 md:!w-16"
-            icon="check_circle"
-            size="18px"
-            :disable="gameOver || currentWord.length === 0"
-            @click="submitWord"
-          >
-            <q-tooltip class="text-xs">Valider</q-tooltip>
-          </q-btn>
-        </div>
+        <WordActionPanel
+          :current-word="currentWord"
+          :word-preview="wordPreview"
+          :disable-submit="gameOver || currentWord.length === 0"
+          variant="solo"
+          @clear="clearSelection"
+          @submit="submitWord"
+        />
       </div>
 
       <!-- Historique : Toujours visible, adapté selon la taille -->
@@ -88,10 +40,12 @@
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
 import { storeToRefs } from 'pinia';
-import { computed, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 import backgroundGame from '../assets/background_game.png';
+import GameBackground from '../components/GameBackground.vue';
 import GameBoard from '../components/GameBoard.vue';
 import ScoreHeader from '../components/ScoreHeader.vue';
+import WordActionPanel from '../components/WordActionPanel.vue';
 import WordHistory from '../components/WordHistory.vue';
 import { useGameStore } from '../stores/useGameStore';
 
@@ -109,19 +63,6 @@ const {
 const { clearSelection, submitWord, startSolo, resetGame } = store;
 const $q = useQuasar();
 const dialogVisible = ref(false);
-
-const wordPreviewClasses = computed(() => {
-  switch (wordPreview.value.status) {
-    case 'valid':
-      return 'border border-emerald-500/60 bg-emerald-500/20 text-emerald-100 shadow-[0_0_15px_rgba(16,185,129,0.3)]';
-    case 'used':
-      return 'border border-amber-400/60 bg-amber-400/20 text-amber-100 shadow-[0_0_15px_rgba(251,191,36,0.2)]';
-    case 'invalid':
-      return 'border border-rose-400/60 bg-rose-400/20 text-rose-100 shadow-[0_0_15px_rgba(251,113,133,0.2)]';
-    default:
-      return 'border border-slate-700/70 bg-slate-900/70 text-slate-400';
-  }
-});
 
 const showGameOverDialog = () => {
   if (dialogVisible.value) {
@@ -174,9 +115,6 @@ watch(gameOver, (value) => {
 </script>
 
 <style scoped>
-/* Import Google Fonts pour le mot en cours */
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@700&family=Exo+2:wght@700&display=swap');
-
 /* Scrollbar personnalisée */
 .scrollbar-thin::-webkit-scrollbar {
   width: 6px;
@@ -196,36 +134,4 @@ watch(gameOver, (value) => {
   background: rgba(51, 65, 85, 0.7);
 }
 
-/* Cartes futuristes */
-.futuristic-inner {
-  border-radius: 0.75rem;
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.7) 100%);
-  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
-}
-
-/* Effet lumineux futuriste */
-.futuristic-glow {
-  text-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
-}
-
-/* Bouton futuriste */
-.futuristic-btn {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  box-shadow: 
-    0 4px 6px -1px rgba(59, 130, 246, 0.3),
-    0 2px 4px -1px rgba(59, 130, 246, 0.2);
-  transition: all 0.2s ease;
-}
-
-.futuristic-btn:hover:not(:disabled) {
-  box-shadow: 
-    0 10px 15px -3px rgba(59, 130, 246, 0.4),
-    0 4px 6px -2px rgba(59, 130, 246, 0.3);
-  transform: translateY(-2px);
-}
-
-.futuristic-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 </style>
