@@ -198,7 +198,9 @@ export const useGameStore = defineStore('game', {
       time: string;
     }>,
     startTime: null as number | null,
-    now: Date.now()
+    now: Date.now(),
+    paused: false,
+    pausedAt: null as number | null
   }),
   getters: {
     currentWord(state) {
@@ -233,6 +235,33 @@ export const useGameStore = defineStore('game', {
     }
   },
   actions: {
+    startTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+      }
+      timerInterval = setInterval(() => {
+        this.now = Date.now();
+      }, 1000);
+    },
+    startOverflowCountdown() {
+      if (this.overflowCountdown === null) {
+        return;
+      }
+      if (overflowInterval) {
+        clearInterval(overflowInterval);
+      }
+      overflowInterval = setInterval(() => {
+        if (this.overflowCountdown === null) {
+          return;
+        }
+        if (this.overflowCountdown <= 1) {
+          this.overflowCountdown = null;
+          this.finishGame('Game Over : rack saturé.');
+          return;
+        }
+        this.overflowCountdown -= 1;
+      }, 1000);
+    },
     setPlayerName(name: string) {
       const trimmed = name.trim();
       this.playerName = trimmed || PLAYER_NAME;
@@ -254,6 +283,9 @@ export const useGameStore = defineStore('game', {
       this.lastSpawnedLetter = null;
       this.wordHistory = [];
       this.startTime = null;
+      this.now = Date.now();
+      this.paused = false;
+      this.pausedAt = null;
       if (spawnInterval) {
         clearInterval(spawnInterval);
         spawnInterval = null;
@@ -272,9 +304,10 @@ export const useGameStore = defineStore('game', {
       this.refillLetterBag();
       this.seedInitialLetters();
       this.startTime = Date.now();
-      timerInterval = setInterval(() => {
-        this.now = Date.now();
-      }, 1000);
+      this.now = this.startTime;
+      this.paused = false;
+      this.pausedAt = null;
+      this.startTimer();
       this.startSpawnLoop();
     },
     startSpawnLoop() {
@@ -376,17 +409,7 @@ export const useGameStore = defineStore('game', {
         clearInterval(spawnInterval);
         spawnInterval = null;
       }
-      overflowInterval = setInterval(() => {
-        if (this.overflowCountdown === null) {
-          return;
-        }
-        if (this.overflowCountdown <= 1) {
-          this.overflowCountdown = null;
-          this.finishGame('Game Over : rack saturé.');
-          return;
-        }
-        this.overflowCountdown -= 1;
-      }, 1000);
+      this.startOverflowCountdown();
     },
     finishGame(message: string) {
       this.gameOver = true;
@@ -399,6 +422,10 @@ export const useGameStore = defineStore('game', {
       if (overflowInterval) {
         clearInterval(overflowInterval);
         overflowInterval = null;
+      }
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
       }
     },
     resolveOverflowIfPossible() {
@@ -420,7 +447,7 @@ export const useGameStore = defineStore('game', {
     },
     toggleSelect(index: number) {
       const slot = this.slots[index];
-      if (!slot.letter || this.gameOver) {
+      if (!slot.letter || this.gameOver || this.paused) {
         return;
       }
       if (slot.selected) {
@@ -432,7 +459,7 @@ export const useGameStore = defineStore('game', {
       }
     },
     selectLetterFromKeyboard(letter: string) {
-      if (this.gameOver) {
+      if (this.gameOver || this.paused) {
         return;
       }
       const normalized = letter.toUpperCase();
@@ -464,7 +491,7 @@ export const useGameStore = defineStore('game', {
       this.selectedIndices = [];
     },
     submitWord() {
-      if (this.selectedIndices.length === 0) {
+      if (this.selectedIndices.length === 0 || this.paused) {
         return;
       }
       const word = this.currentWord;
@@ -522,6 +549,42 @@ export const useGameStore = defineStore('game', {
           navigator.vibrate(120);
         }
       }
+    },
+    pauseGame() {
+      if (this.paused || this.gameOver || !this.startTime) {
+        return;
+      }
+      this.paused = true;
+      this.pausedAt = Date.now();
+      if (spawnInterval) {
+        clearInterval(spawnInterval);
+        spawnInterval = null;
+      }
+      if (overflowInterval) {
+        clearInterval(overflowInterval);
+        overflowInterval = null;
+      }
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    },
+    resumeGame() {
+      if (!this.paused || this.gameOver || !this.startTime) {
+        return;
+      }
+      const pausedAt = this.pausedAt ?? Date.now();
+      const pausedDuration = Date.now() - pausedAt;
+      this.startTime += pausedDuration;
+      this.paused = false;
+      this.pausedAt = null;
+      this.now = Date.now();
+      this.startTimer();
+      if (this.overflowCountdown !== null) {
+        this.startOverflowCountdown();
+        return;
+      }
+      this.startSpawnLoop();
     }
   }
 });

@@ -11,7 +11,7 @@
 
     <!-- Header fixe en haut -->
     <div class="relative z-10 px-3 pt-3 md:px-4 md:pt-4">
-      <ScoreHeader @quit="confirmQuit" />
+      <ScoreHeader @quit="confirmQuit" @pause="openPauseDialog" />
     </div>
 
     <!-- Contenu principal : Layout flexible selon la taille d'écran -->
@@ -106,9 +106,10 @@ const {
   score,
   highScore
 } = storeToRefs(store);
-const { clearSelection, submitWord, startSolo, resetGame } = store;
+const { clearSelection, submitWord, startSolo, resetGame, pauseGame, resumeGame } = store;
 const $q = useQuasar();
 const dialogVisible = ref(false);
+const pauseDialogVisible = ref(false);
 
 const wordPreviewClasses = computed(() => {
   switch (wordPreview.value.status) {
@@ -163,6 +164,27 @@ const confirmQuit = () => {
   }).onOk(() => {
     resetGame();
     emit('quit');
+  });
+};
+
+const openPauseDialog = () => {
+  if (pauseDialogVisible.value || gameOver.value) {
+    return;
+  }
+  pauseDialogVisible.value = true;
+  pauseGame();
+  $q.dialog({
+    title: 'Partie en pause',
+    message: 'La partie est en pause.',
+    ok: { label: 'Reprendre', color: 'primary', unelevated: true, rounded: true },
+    dark: true,
+    noFocus: true,
+    noRefocus: true,
+    persistent: true,
+    class: 'lexi-dialog'
+  }).onOk(() => {
+    pauseDialogVisible.value = false;
+    resumeGame();
   });
 };
 
