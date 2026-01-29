@@ -6,7 +6,11 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
-    allowedHosts: true
+    allowedHosts: true,
+    hmr: false,
+    watch: {
+      usePolling: false, 
+    }
   },
   css: {
     preprocessorOptions: {

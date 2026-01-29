@@ -34,9 +34,9 @@ const LETTER_BAG_COUNTS: Record<string, number> = {
 const VOWELS = new Set(['A', 'E', 'I', 'O', 'U', 'Y']);
 
 const MAX_SLOTS = 20;
-const INITIAL_LETTERS = 5;
+const INITIAL_LETTERS = 3;
 const SPAWN_INTERVAL_MS = 2500;
-const OVERFLOW_COUNTDOWN_SECONDS = 5;
+const OVERFLOW_COUNTDOWN_SECONDS = 6;
 const PLAYER_NAME = 'LexiHero';
 const PLAYER_NAME_STORAGE_KEY = 'lexiflood_player_name';
 

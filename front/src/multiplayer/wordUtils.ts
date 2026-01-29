@@ -40,25 +40,28 @@ const DICTIONARY = new Set(words.map((word) => normalizeWord(word)).filter(Boole
 
 const getLengthModifiers = (length: number) => {
   if (length === 2) {
-    return { multiplier: 0.5, bonus: 0 };
+    return { multiplier: 0.6, bonus: 0 };
   }
   if (length === 3) {
-    return { multiplier: 1, bonus: 0 };
+    return { multiplier: 1.1, bonus: 0 };
   }
   if (length === 4) {
-    return { multiplier: 1.1, bonus: 5 };
+    return { multiplier: 1.2, bonus: 5 };
   }
   if (length === 5) {
-    return { multiplier: 1.2, bonus: 10 };
+    return { multiplier: 1.3, bonus: 10 };
   }
   if (length === 6) {
-    return { multiplier: 1.3, bonus: 20 };
+    return { multiplier: 1.4, bonus: 20 };
   }
   if (length === 7) {
-    return { multiplier: 1.4, bonus: 30 };
+    return { multiplier: 1.5, bonus: 30 };
   }
   if (length >= 8) {
-    return { multiplier: 1.5, bonus: 50 };
+    return { multiplier: 1.7, bonus: 50 };
+  }
+  if (length >= 10) {
+    return { multiplier: 2, bonus: 70 };
   }
   return { multiplier: 1, bonus: 0 };
 };
