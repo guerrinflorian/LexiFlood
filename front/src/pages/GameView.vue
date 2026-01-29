@@ -11,7 +11,7 @@
 
     <!-- Header fixe en haut -->
     <div class="relative z-10 px-3 pt-3 md:px-4 md:pt-4">
-      <ScoreHeader @quit="confirmQuit" @pause="openPauseDialog" />
+      <ScoreHeader @quit="confirmQuit" />
     </div>
 
     <!-- Contenu principal : Layout flexible selon la taille d'écran -->
@@ -20,56 +20,15 @@
       
       <!-- Colonne principale : Mot + Actions -->
       <div class="flex min-h-0 flex-col items-center justify-center gap-3 md:overflow-y-auto md:scrollbar-thin md:scrollbar-track-slate-950/50 md:scrollbar-thumb-slate-700/50 md:col-start-2">
-        <!-- Zone du mot en cours avec boutons de chaque côté -->
-        <div class="flex w-full max-w-4xl items-center justify-center gap-4 p-4">
-          <!-- Bouton Effacer à gauche -->
-          <q-btn
-            outline
-            round
-            color="secondary"
-            class="!h-14 !w-14 md:!h-16 md:!w-16"
-            icon="backspace"
-            size="18px"
-            @click="clearSelection"
-          >
-            <q-tooltip class="text-xs">Effacer</q-tooltip>
-          </q-btn>
-
-          <!-- Mot en cours au centre -->
-          <div class="futuristic-inner flex-1 space-y-3 p-6 text-center md:p-8">
-            <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">Mot en cours</p>
-            
-            <p class="futuristic-glow flex min-h-[3rem] items-center justify-center text-4xl font-bold tracking-wide text-white md:min-h-[3.5rem] md:text-5xl" style="font-family: 'Orbitron', 'Rajdhani', 'Exo 2', monospace;">
-              {{ currentWord || '—' }}
-            </p>
-            
-            <div class="flex flex-wrap items-center justify-center gap-2">
-              <span
-                class="rounded-full px-3 py-1 text-xs font-bold transition-all"
-                :class="wordPreviewClasses"
-              >
-                {{ wordPreview.label }}
-              </span>
-              <span class="rounded-full border border-slate-700/70 bg-slate-900/70 px-3 py-1 text-xs font-bold text-slate-200">
-                {{ wordPreview.points }} pts
-              </span>
-            </div>
-          </div>
-
-          <!-- Bouton Valider à droite -->
-          <q-btn
-            unelevated
-            round
-            color="primary"
-            class="futuristic-btn !h-14 !w-14 text-slate-950 md:!h-16 md:!w-16"
-            icon="check_circle"
-            size="18px"
-            :disable="gameOver || currentWord.length === 0"
-            @click="submitWord"
-          >
-            <q-tooltip class="text-xs">Valider</q-tooltip>
-          </q-btn>
-        </div>
+        <!-- Utilisation du composant WordActionPanel -->
+        <WordActionPanel
+          :current-word="currentWord"
+          :word-preview="wordPreview"
+          :disable-submit="gameOver || currentWord.length === 0"
+          variant="solo"
+          @clear="clearSelection"
+          @submit="submitWord"
+        />
       </div>
 
       <!-- Historique : hauteur fixe sur mobile, pleine hauteur sur desktop -->
@@ -88,10 +47,11 @@
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
 import { storeToRefs } from 'pinia';
-import { computed, ref, watch } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import backgroundGame from '../assets/background_game.png';
 import GameBoard from '../components/GameBoard.vue';
 import ScoreHeader from '../components/ScoreHeader.vue';
+import WordActionPanel from '../components/WordActionPanel.vue';
 import WordHistory from '../components/WordHistory.vue';
 import { useGameStore } from '../stores/useGameStore';
 
@@ -106,23 +66,31 @@ const {
   score,
   highScore
 } = storeToRefs(store);
-const { clearSelection, submitWord, startSolo, resetGame, pauseGame, resumeGame } = store;
+const { clearSelection, submitWord, startSolo, resetGame, pauseGame, resumeGame, selectLetterFromKeyboard, removeLastSelectedLetter } = store;
 const $q = useQuasar();
 const dialogVisible = ref(false);
 const pauseDialogVisible = ref(false);
 
-const wordPreviewClasses = computed(() => {
-  switch (wordPreview.value.status) {
-    case 'valid':
-      return 'border border-emerald-500/60 bg-emerald-500/20 text-emerald-100 shadow-[0_0_15px_rgba(16,185,129,0.3)]';
-    case 'used':
-      return 'border border-amber-400/60 bg-amber-400/20 text-amber-100 shadow-[0_0_15px_rgba(251,191,36,0.2)]';
-    case 'invalid':
-      return 'border border-rose-400/60 bg-rose-400/20 text-rose-100 shadow-[0_0_15px_rgba(251,113,133,0.2)]';
-    default:
-      return 'border border-slate-700/70 bg-slate-900/70 text-slate-400';
+const handleKeydown = (event: KeyboardEvent) => {
+  const target = event.target as HTMLElement | null;
+  if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+    return;
   }
-});
+  if (event.key === 'Backspace') {
+    event.preventDefault();
+    removeLastSelectedLetter();
+    return;
+  }
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    submitWord();
+    return;
+  }
+  if (event.key.length === 1 && /[a-zA-Z]/.test(event.key)) {
+    event.preventDefault();
+    selectLetterFromKeyboard(event.key);
+  }
+};
 
 const showGameOverDialog = () => {
   if (dialogVisible.value) {
@@ -193,6 +161,14 @@ watch(gameOver, (value) => {
     showGameOverDialog();
   }
 });
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown);
+});
 </script>
 
 <style scoped>
@@ -216,38 +192,5 @@ watch(gameOver, (value) => {
 
 .scrollbar-thumb-slate-700\/50::-webkit-scrollbar-thumb:hover {
   background: rgba(51, 65, 85, 0.7);
-}
-
-/* Cartes futuristes */
-.futuristic-inner {
-  border-radius: 0.75rem;
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.7) 100%);
-  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
-}
-
-/* Effet lumineux futuriste */
-.futuristic-glow {
-  text-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
-}
-
-/* Bouton futuriste */
-.futuristic-btn {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  box-shadow: 
-    0 4px 6px -1px rgba(59, 130, 246, 0.3),
-    0 2px 4px -1px rgba(59, 130, 246, 0.2);
-  transition: all 0.2s ease;
-}
-
-.futuristic-btn:hover:not(:disabled) {
-  box-shadow: 
-    0 10px 15px -3px rgba(59, 130, 246, 0.4),
-    0 4px 6px -2px rgba(59, 130, 246, 0.3);
-  transform: translateY(-2px);
-}
-
-.futuristic-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 </style>
