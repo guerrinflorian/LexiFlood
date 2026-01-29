@@ -11,7 +11,7 @@
 
     <!-- Header fixe en haut -->
     <div class="relative z-10 px-3 pt-3 md:px-4 md:pt-4">
-      <ScoreHeader @quit="confirmQuit" />
+      <ScoreHeader @quit="confirmQuit" @pause="openPauseDialog" />
     </div>
 
     <!-- Contenu principal : Layout flexible selon la taille d'écran -->
@@ -64,12 +64,14 @@ const {
   gameOver,
   wordPreview,
   score,
-  highScore
+  highScore,
+  pauseEndsAt
 } = storeToRefs(store);
 const { clearSelection, submitWord, startSolo, resetGame, pauseGame, resumeGame, selectLetterFromKeyboard, removeLastSelectedLetter } = store;
 const $q = useQuasar();
 const dialogVisible = ref(false);
 const pauseDialogVisible = ref(false);
+let pauseCountdownInterval: ReturnType<typeof setInterval> | null = null;
 
 const handleKeydown = (event: KeyboardEvent) => {
   const target = event.target as HTMLElement | null;
@@ -139,20 +141,50 @@ const openPauseDialog = () => {
   if (pauseDialogVisible.value || gameOver.value) {
     return;
   }
+  const didPause = pauseGame();
+  if (!didPause) {
+    return;
+  }
   pauseDialogVisible.value = true;
-  pauseGame();
-  $q.dialog({
+  const dialog = $q.dialog({
     title: 'Partie en pause',
-    message: 'La partie est en pause.',
+    message: 'Reprise automatique dans 10s.',
     ok: { label: 'Reprendre', color: 'primary', unelevated: true, rounded: true },
     dark: true,
     noFocus: true,
     noRefocus: true,
     persistent: true,
     class: 'lexi-dialog'
-  }).onOk(() => {
+  });
+  const clearPauseCountdown = () => {
+    if (pauseCountdownInterval) {
+      clearInterval(pauseCountdownInterval);
+      pauseCountdownInterval = null;
+    }
+  };
+  const finalizeResume = () => {
+    if (!pauseDialogVisible.value) {
+      return;
+    }
     pauseDialogVisible.value = false;
+    clearPauseCountdown();
     resumeGame();
+  };
+  const updateCountdown = () => {
+    const remaining = pauseEndsAt.value
+      ? Math.max(0, Math.ceil((pauseEndsAt.value - Date.now()) / 1000))
+      : 0;
+    dialog.update({ message: `Reprise automatique dans ${remaining}s.` });
+    if (remaining <= 0) {
+      dialog.hide();
+      finalizeResume();
+    }
+  };
+  pauseCountdownInterval = setInterval(updateCountdown, 250);
+  updateCountdown();
+  dialog.onOk(() => {
+    dialog.hide();
+    finalizeResume();
   });
 };
 
@@ -168,6 +200,10 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown);
+  if (pauseCountdownInterval) {
+    clearInterval(pauseCountdownInterval);
+    pauseCountdownInterval = null;
+  }
 });
 </script>
 

@@ -37,6 +37,8 @@ const MAX_SLOTS = 20;
 const INITIAL_LETTERS = 3;
 const SPAWN_INTERVAL_MS = 2500;
 const OVERFLOW_COUNTDOWN_SECONDS = 6;
+const PAUSE_DURATION_MS = 10_000;
+const PAUSE_COOLDOWN_MS = 60_000;
 const PLAYER_NAME = 'LexiHero';
 const PLAYER_NAME_STORAGE_KEY = 'lexiflood_player_name';
 
@@ -200,7 +202,9 @@ export const useGameStore = defineStore('game', {
     startTime: null as number | null,
     now: Date.now(),
     paused: false,
-    pausedAt: null as number | null
+    pausedAt: null as number | null,
+    pauseEndsAt: null as number | null,
+    pauseCooldownUntil: null as number | null
   }),
   getters: {
     currentWord(state) {
@@ -286,6 +290,8 @@ export const useGameStore = defineStore('game', {
       this.now = Date.now();
       this.paused = false;
       this.pausedAt = null;
+      this.pauseEndsAt = null;
+      this.pauseCooldownUntil = null;
       if (spawnInterval) {
         clearInterval(spawnInterval);
         spawnInterval = null;
@@ -307,6 +313,8 @@ export const useGameStore = defineStore('game', {
       this.now = this.startTime;
       this.paused = false;
       this.pausedAt = null;
+      this.pauseEndsAt = null;
+      this.pauseCooldownUntil = null;
       this.startTimer();
       this.startSpawnLoop();
     },
@@ -552,10 +560,16 @@ export const useGameStore = defineStore('game', {
     },
     pauseGame() {
       if (this.paused || this.gameOver || !this.startTime) {
-        return;
+        return false;
+      }
+      const now = Date.now();
+      if (this.pauseCooldownUntil && now < this.pauseCooldownUntil) {
+        return false;
       }
       this.paused = true;
-      this.pausedAt = Date.now();
+      this.pausedAt = now;
+      this.pauseEndsAt = now + PAUSE_DURATION_MS;
+      this.pauseCooldownUntil = now + PAUSE_COOLDOWN_MS;
       if (spawnInterval) {
         clearInterval(spawnInterval);
         spawnInterval = null;
@@ -568,6 +582,7 @@ export const useGameStore = defineStore('game', {
         clearInterval(timerInterval);
         timerInterval = null;
       }
+      return true;
     },
     resumeGame() {
       if (!this.paused || this.gameOver || !this.startTime) {
@@ -578,6 +593,7 @@ export const useGameStore = defineStore('game', {
       this.startTime += pausedDuration;
       this.paused = false;
       this.pausedAt = null;
+      this.pauseEndsAt = null;
       this.now = Date.now();
       this.startTimer();
       if (this.overflowCountdown !== null) {
