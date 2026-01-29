@@ -1,5 +1,6 @@
 import { Notify } from 'quasar';
 import { defineStore } from 'pinia';
+import { io, type Socket } from 'socket.io-client';
 import { computeScore, isValidWord, normalizeWord } from './wordUtils';
 
 const MAX_SLOTS = 20;
@@ -64,7 +65,7 @@ const notifySuccess = (message: string) => {
   });
 };
 
-let socket: any = null;
+let socket: Socket | null = null;
 let countdownInterval: ReturnType<typeof setInterval> | null = null;
 let overflowInterval: ReturnType<typeof setInterval> | null = null;
 let intermissionInterval: ReturnType<typeof setInterval> | null = null;
@@ -144,12 +145,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       if (socket) {
         return;
       }
-      const socketFactory = (typeof window !== 'undefined' ? (window as any).io : undefined);
-      if (!socketFactory) {
-        notifyError('Socket.io indisponible. Vérifiez que le serveur est en ligne.');
-        return;
-      }
-      socket = socketFactory(SOCKET_URL, { transports: ['websocket'] });
+      socket = io(SOCKET_URL, { transports: ['websocket'] });
 
       socket.on('connect', () => {
         this.playerId = socket?.id ?? '';
