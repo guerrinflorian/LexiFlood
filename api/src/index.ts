@@ -29,7 +29,7 @@ const startServer = async () => {
 
   registerMultiplayer(io);
 
-  const port = 3000;
+  const port = Number(process.env.PORT) || 3000;
   try {
     await app.listen({ port, host: '0.0.0.0' });
     app.log.info(`LexiFlood API running on port ${port}`);

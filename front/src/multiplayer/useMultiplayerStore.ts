@@ -5,7 +5,7 @@ import { computeScore, isValidWord, normalizeWord } from './wordUtils';
 
 const MAX_SLOTS = 20;
 const OVERFLOW_COUNTDOWN_SECONDS = 5;
-const SOCKET_URL = `http://${window.location.hostname}:3000`;
+const SOCKET_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3000`;
 const INTERMISSION_TICK_MS = 250;
 const PLAYER_NAME_STORAGE_KEY = 'lexiflood_player_name';
 const DEFAULT_PLAYER_NAME = 'LexiHero';
