@@ -16,13 +16,32 @@
       <p class="mb-1 text-[7px] font-bold uppercase tracking-[0.1em] text-slate-400 sm:text-[8px] md:mb-1.5 md:text-[9px] lg:text-[10px] lg:tracking-[0.3em]">Mot en cours</p>
 
       <div class="flex h-8 items-center justify-center sm:h-10 md:h-12 lg:h-16">
-        <p
-          class="futuristic-glow overflow-hidden px-1 font-bold text-white"
+        <div
+          class="word-display futuristic-glow overflow-hidden px-1 font-bold"
           :class="wordSizeClass"
           style="font-family: 'Orbitron', 'Rajdhani', 'Exo 2', monospace; line-height: 1;"
         >
-          {{ currentWord || '—' }}
-        </p>
+          <TransitionGroup name="word-letter" tag="div" class="word-letters">
+            <span
+              v-for="entry in letterEntries"
+              :key="entry.id"
+              class="word-letter"
+              :style="entry.style"
+            >
+              <span class="word-letter-char">{{ entry.char }}</span>
+              <span v-if="entry.burstItems.length" class="word-burst" aria-hidden="true">
+                <span
+                  v-for="item in entry.burstItems"
+                  :key="item.id"
+                  class="word-burst-item"
+                  :class="item.type === 'tri' ? 'word-burst-tri' : 'word-burst-dot'"
+                  :style="item.style"
+                ></span>
+              </span>
+            </span>
+          </TransitionGroup>
+          <span v-if="!letterEntries.length" class="word-placeholder">—</span>
+        </div>
       </div>
 
       <div class="mt-1 flex flex-nowrap items-center justify-center gap-1 md:mt-1.5">
@@ -51,12 +70,25 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 type WordPreview = {
   status: 'valid' | 'used' | 'invalid' | 'pending' | string;
   label: string;
   points: number;
+};
+
+type BurstItem = {
+  id: number;
+  type: 'tri' | 'dot';
+  style: Record<string, string>;
+};
+
+type LetterEntry = {
+  id: number;
+  char: string;
+  style: Record<string, string>;
+  burstItems: BurstItem[];
 };
 
 const props = defineProps<{
@@ -67,6 +99,62 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{ (event: 'clear'): void; (event: 'submit'): void }>();
+
+const letterEntries = ref<LetterEntry[]>([]);
+let letterCounter = 0;
+let burstCounter = 0;
+
+const letterColor = (char: string) => {
+  const index = char.charCodeAt(0) % 4;
+  return ['var(--neon-cyan)', 'var(--neon-magenta)', 'var(--neon-yellow)', 'var(--neon-green)'][index];
+};
+
+const createBurstItems = () =>
+  Array.from({ length: 16 }, (_, index) => {
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 18 + Math.random() * 18;
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * distance;
+    const scale = 0.4 + Math.random() * 0.8;
+    const rotation = Math.random() * 360;
+    return {
+      id: burstCounter++,
+      type: index % 2 === 0 ? 'tri' : 'dot',
+      style: {
+        '--burst-x': `${x}px`,
+        '--burst-y': `${y}px`,
+        '--burst-scale': `${scale}`,
+        '--burst-rotate': `${rotation}deg`,
+      },
+    };
+  });
+
+const createEntry = (char: string): LetterEntry => {
+  const rotation = -50 + Math.random() * 100;
+  const bounce = 10 + Math.random() * 12;
+  return {
+    id: letterCounter++,
+    char,
+    style: {
+      '--letter-rotation': `${rotation}deg`,
+      '--letter-bounce': `${bounce}px`,
+      '--letter-color': letterColor(char),
+    },
+    burstItems: createBurstItems(),
+  };
+};
+
+const scheduleBurstClear = (entryId: number) => {
+  window.setTimeout(() => {
+    const index = letterEntries.value.findIndex((entry) => entry.id === entryId);
+    if (index === -1) {
+      return;
+    }
+    const updated = [...letterEntries.value];
+    updated[index] = { ...updated[index], burstItems: [] };
+    letterEntries.value = updated;
+  }, 650);
+};
 
 const wordPreviewClasses = computed(() => {
   switch (props.wordPreview.status) {
@@ -95,6 +183,29 @@ const wordSizeClass = computed(() => {
 });
 
 const variantClass = computed(() => props.variant ?? 'solo');
+
+watch(
+  () => props.currentWord,
+  (word) => {
+    const chars = word.split('');
+    const previousEntries = letterEntries.value;
+    const nextEntries: LetterEntry[] = [];
+
+    chars.forEach((char, index) => {
+      const previous = previousEntries[index];
+      if (previous && previous.char === char) {
+        nextEntries.push(previous);
+        return;
+      }
+      const entry = createEntry(char);
+      nextEntries.push(entry);
+      scheduleBurstClear(entry.id);
+    });
+
+    letterEntries.value = nextEntries;
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>
@@ -135,5 +246,116 @@ const variantClass = computed(() => props.variant ?? 'solo');
 .futuristic-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.word-display {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.08em;
+  color: #ffffff;
+}
+
+.word-letters {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.06em;
+}
+
+.word-letter {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--letter-color, #ffffff);
+  text-shadow:
+    0 0 6px rgba(255, 255, 255, 0.9),
+    0 0 14px currentColor,
+    0 0 30px currentColor;
+}
+
+.word-letter-char {
+  position: relative;
+  z-index: 1;
+}
+
+.word-placeholder {
+  color: rgba(226, 232, 240, 0.6);
+}
+
+.word-letter-enter-active {
+  animation: word-letter-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.word-letter-leave-active {
+  animation: word-letter-out 0.12s ease-in forwards;
+}
+
+.word-burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.word-burst-item {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: clamp(4px, 0.8vw, 8px);
+  height: clamp(4px, 0.8vw, 8px);
+  background: var(--letter-color, rgba(255, 255, 255, 0.85));
+  transform: translate(-50%, -50%) scale(var(--burst-scale)) rotate(var(--burst-rotate));
+  animation: word-burst-out 0.6s ease-in-out forwards;
+}
+
+.word-burst-dot {
+  border-radius: 999px;
+  background: #f8fafc;
+}
+
+.word-burst-tri {
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+}
+
+@keyframes word-letter-in {
+  0% {
+    transform: translateY(0) scale(0) rotate(var(--letter-rotation, 0deg));
+    opacity: 0;
+  }
+  50% {
+    transform: translateY(calc(-1 * var(--letter-bounce, 12px))) scale(1.05) rotate(var(--letter-rotation, 0deg));
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes word-letter-out {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes word-burst-out {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(var(--burst-scale)) rotate(var(--burst-rotate));
+  }
+  100% {
+    opacity: 0;
+    transform:
+      translate(calc(-50% + var(--burst-x)), calc(-50% + var(--burst-y)))
+      scale(0)
+      rotate(calc(var(--burst-rotate) + 90deg));
+  }
 }
 </style>
