@@ -4,15 +4,21 @@
       <!-- En-tête -->
       <div class="border-b border-slate-700/50 pb-5 text-center">
         <div class="mb-3 flex justify-center">
-          <div class="trophy-icon">
-            <span class="text-4xl">🏆</span>
+          <div class="trophy-icon" :class="headerIconClass">
+            <span class="text-4xl">{{ headerIcon }}</span>
           </div>
         </div>
         <h3 class="text-3xl font-bold text-white drop-shadow-[0_0_15px_rgba(251,191,36,0.6)] sm:text-4xl" style="font-family: 'Orbitron', sans-serif;">
-          Victoire !
+          {{ headerTitle }}
         </h3>
         <p class="mt-2 text-base text-slate-300 sm:text-lg">
-          Félicitations <span class="font-bold text-amber-400">{{ winnerName }}</span> ! 🎉
+          <span v-if="outcome === 'draw'">Le dernier round se termine sur un match nul.</span>
+          <span v-else-if="outcome === 'victory'">
+            Félicitations <span class="font-bold text-amber-400">{{ winnerName }}</span> ! 🎉
+          </span>
+          <span v-else>
+            Victoire de <span class="font-bold text-amber-400">{{ winnerName }}</span>. Courage pour la revanche !
+          </span>
         </p>
       </div>
 
@@ -80,6 +86,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 type FinalEntry = {
   id: string;
   name: string;
@@ -87,9 +94,10 @@ type FinalEntry = {
   position: number;
 };
 
-defineProps<{
+const props = defineProps<{
   winnerName: string;
   finalScoreboard: FinalEntry[];
+  outcome: 'victory' | 'defeat' | 'draw';
 }>();
 
 const emit = defineEmits<{ (event: 'back-to-menu'): void }>();
@@ -107,6 +115,27 @@ const getAvatarClass = (position: number) => {
   if (position === 3) return 'player-avatar-bronze';
   return 'player-avatar-default';
 };
+
+const headerTitle = computed(() => {
+  if (props.outcome === 'draw') {
+    return 'Match nul';
+  }
+  return props.outcome === 'victory' ? 'Victoire !' : 'Défaite';
+});
+
+const headerIcon = computed(() => {
+  if (props.outcome === 'draw') {
+    return '🤝';
+  }
+  return props.outcome === 'victory' ? '🏆' : '🎯';
+});
+
+const headerIconClass = computed(() => {
+  if (props.outcome === 'draw') {
+    return 'trophy-icon-draw';
+  }
+  return props.outcome === 'victory' ? 'trophy-icon-win' : 'trophy-icon-defeat';
+});
 </script>
 
 <style scoped>
@@ -138,6 +167,24 @@ const getAvatarClass = (position: number) => {
   border: 2px solid rgba(251, 191, 36, 0.4);
   box-shadow: 0 0 30px rgba(251, 191, 36, 0.3);
   animation: pulse-trophy 2s ease-in-out infinite;
+}
+
+.trophy-icon-win {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.2) 100%);
+  border-color: rgba(251, 191, 36, 0.4);
+  box-shadow: 0 0 30px rgba(251, 191, 36, 0.3);
+}
+
+.trophy-icon-defeat {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%);
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.25);
+}
+
+.trophy-icon-draw {
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.2) 0%, rgba(100, 116, 139, 0.2) 100%);
+  border-color: rgba(148, 163, 184, 0.35);
+  box-shadow: 0 0 24px rgba(148, 163, 184, 0.25);
 }
 
 @keyframes pulse-trophy {
