@@ -290,7 +290,18 @@ export const useGameStore = defineStore('game', {
           return;
         }
         if (this.overflowCountdown <= 1) {
+          const hasSpace = this.slots.some((slot) => !slot.letter);
           this.overflowCountdown = null;
+          if (hasSpace) {
+            if (overflowInterval) {
+              clearInterval(overflowInterval);
+              overflowInterval = null;
+            }
+            if (!spawnInterval && !this.gameOver) {
+              this.startSpawnLoop();
+            }
+            return;
+          }
           this.finishGame('Game Over : rack saturé.');
           return;
         }

@@ -72,6 +72,7 @@
     <MultiplayerFinalOverlay
       v-if="phase === 'finished'"
       :winner-name="winnerName"
+      :outcome="finalOutcome"
       :final-scoreboard="finalScoreboard"
       @back-to-menu="returnToMenu"
     />
@@ -125,6 +126,7 @@ const {
   submitWord,
   clearSelection,
   leaveRoom,
+  returnToLobby,
   selectLetterFromKeyboard,
   removeLastSelectedLetter
 } = store;
@@ -246,6 +248,15 @@ const winnerName = computed(() => {
   const winnerId = finalResult.value?.winnerId;
   return finalScoreboard.value.find((player) => player.id === winnerId)?.name ?? 'Champion';
 });
+const finalOutcome = computed(() => {
+  if (finalResult.value?.isDraw) {
+    return 'draw';
+  }
+  if (finalResult.value?.winnerId && finalResult.value?.winnerId === playerId.value) {
+    return 'victory';
+  }
+  return 'defeat';
+});
 
 const lastRoundNotified = ref<number | null>(null);
 watch(
@@ -327,7 +338,7 @@ const confirmQuit = () => {
 };
 
 const returnToMenu = () => {
-  emit('quit');
+  returnToLobby();
 };
 
 onMounted(() => {

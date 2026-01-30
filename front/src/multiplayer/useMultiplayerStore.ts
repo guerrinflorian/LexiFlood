@@ -105,6 +105,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     finalResult: null as {
       winnerId: string | null;
       scoreboard: PlayerSummary[];
+      isDraw: boolean;
     } | null
   }),
   getters: {
@@ -235,7 +236,11 @@ export const useMultiplayerStore = defineStore('multiplayer', {
 
       socket.on('game:end', (payload) => {
         this.phase = 'finished';
-        this.finalResult = payload;
+        this.finalResult = {
+          winnerId: payload.winnerId ?? null,
+          scoreboard: payload.scoreboard ?? [],
+          isDraw: payload.isDraw ?? false
+        };
         this.scoreboard = payload.scoreboard ?? [];
         this.stopTimers();
       });
@@ -357,11 +362,28 @@ export const useMultiplayerStore = defineStore('multiplayer', {
         this.phase = 'finished';
         this.finalResult = {
           winnerId: payload.winnerId ?? null,
-          scoreboard: payload.scoreboard ?? []
+          scoreboard: payload.scoreboard ?? [],
+          isDraw: payload.isDraw ?? false
         };
         this.scoreboard = payload.scoreboard ?? [];
         this.stopIntermission();
       }
+    },
+    returnToLobby() {
+      this.phase = 'lobby';
+      this.roundIndex = 0;
+      this.totalRounds = 0;
+      this.targetQualified = 0;
+      this.roundStartAt = 0;
+      this.nextRoundStartAt = 0;
+      this.durationMs = 0;
+      this.letterIntervalMs = 0;
+      this.timeLeftMs = 0;
+      this.roundResult = null;
+      this.finalResult = null;
+      this.stopTimers();
+      this.stopIntermission();
+      this.resetBoard();
     },
     startCountdown() {
       if (countdownInterval) {

@@ -392,11 +392,19 @@ const startRound = (io: Server, room: Room) => {
   }, startDelay + room.durationMs);
 };
 
+const isScoreDraw = (scoreboard: ReturnType<typeof formatScoreboard>) => {
+  if (scoreboard.length < 2) {
+    return false;
+  }
+  return scoreboard[0].score === scoreboard[1].score;
+};
+
 const finishRound = (io: Server, room: Room) => {
   room.status = 'roundEnd';
 
   const targetRemaining = room.rounds[room.roundIndex];
   const sorted = getSortedPlayers(room).filter((player) => !player.eliminated);
+  const isLastRound = room.roundIndex + 1 >= room.rounds.length;
 
   // Check if only one connected player remains during the game
   const connectedActivePlayers = sorted.filter((player) => player.connected);
@@ -406,7 +414,8 @@ const finishRound = (io: Server, room: Room) => {
     const scoreboard = formatScoreboard(room);
     io.to(room.code).emit('game:end', {
       scoreboard,
-      winnerId: connectedActivePlayers[0]?.id ?? scoreboard[0]?.id ?? null
+      winnerId: connectedActivePlayers[0]?.id ?? scoreboard[0]?.id ?? null,
+      isDraw: false
     });
     if (room.letterTimer) {
       clearInterval(room.letterTimer);
@@ -419,8 +428,12 @@ const finishRound = (io: Server, room: Room) => {
     return;
   }
 
-  const qualifiers = sorted.slice(0, targetRemaining);
-  const eliminated = sorted.slice(targetRemaining);
+  const qualifiers = isLastRound
+    ? sorted.filter((player) => player.score === sorted[0]?.score)
+    : sorted.slice(0, targetRemaining);
+  const eliminated = isLastRound
+    ? sorted.filter((player) => player.score !== sorted[0]?.score)
+    : sorted.slice(targetRemaining);
 
   eliminated.forEach((player) => {
     player.eliminated = true;
@@ -440,10 +453,12 @@ const finishRound = (io: Server, room: Room) => {
       qualifiedIds: qualifiers.map((player) => player.id),
       nextRoundStartAt: null
     });
+    const isDraw = isScoreDraw(scoreboard);
     room.status = 'finished';
     io.to(room.code).emit('game:end', {
       scoreboard,
-      winnerId: scoreboard[0]?.id ?? null
+      winnerId: isDraw ? null : scoreboard[0]?.id ?? null,
+      isDraw
     });
     if (room.letterTimer) {
       clearInterval(room.letterTimer);
@@ -474,6 +489,9 @@ const finishRound = (io: Server, room: Room) => {
 
 const sendSnapshot = (socket: Socket, room: Room) => {
   const scoreboard = formatScoreboard(room);
+  const isDraw = room.status === 'finished' && room.roundIndex >= room.rounds.length
+    ? isScoreDraw(scoreboard)
+    : false;
   socket.emit('game:snapshot', {
     status: room.status,
     roundIndex: room.roundIndex,
@@ -487,7 +505,8 @@ const sendSnapshot = (socket: Socket, room: Room) => {
     initialLetters: room.initialLetters,
     wordHistory: room.wordHistory,
     scoreboard,
-    winnerId: room.status === 'finished' ? scoreboard[0]?.id ?? null : null
+    winnerId: room.status === 'finished' && !isDraw ? scoreboard[0]?.id ?? null : null,
+    isDraw
   });
 };
 
@@ -512,7 +531,8 @@ const checkAndHandleGameEnd = (io: Server, room: Room) => {
     const scoreboard = formatScoreboard(room);
     io.to(room.code).emit('game:end', {
       scoreboard,
-      winnerId: connectedActivePlayers[0]?.id ?? scoreboard[0]?.id ?? null
+      winnerId: connectedActivePlayers[0]?.id ?? scoreboard[0]?.id ?? null,
+      isDraw: false
     });
   }
 };
