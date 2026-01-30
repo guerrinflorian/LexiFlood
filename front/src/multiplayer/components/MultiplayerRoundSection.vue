@@ -1,9 +1,12 @@
 <template>
-  <section class="relative z-10 flex flex-1 flex-col gap-3 overflow-hidden px-3 pb-3 md:grid md:grid-cols-[280px_minmax(0,1fr)_280px] md:px-4 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
+  <section class="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden px-2 pb-2 md:grid md:grid-cols-[280px_minmax(0,1fr)_280px] md:gap-3 md:px-4 md:pb-3 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
+    
     <!-- Version mobile : Classement et Historique côte à côte en haut -->
-    <div class="flex h-40 flex-shrink-0 gap-2 md:hidden">
-      <div class="min-w-0 flex-1">
+    <!-- Visible UNIQUEMENT sur mobile avec md:hidden -->
+    <div class="flex min-h-0 flex-1 gap-1.5 overflow-hidden md:hidden">
+      <div class="min-h-0 min-w-0 flex-1 overflow-hidden">
         <MultiplayerScoreboard
+          class="h-full"
           :scoreboard="scoreboard"
           :player-id="playerId"
           :round-index="roundIndex"
@@ -16,14 +19,16 @@
           :eliminated-ids="eliminatedIds"
         />
       </div>
-      <div class="min-w-0 flex-1">
-        <MultiplayerWordHistory />
+      <div class="min-h-0 min-w-0 flex-1 overflow-hidden">
+        <MultiplayerWordHistory class="h-full" />
       </div>
     </div>
 
     <!-- Version desktop : Classement à gauche -->
-    <div class="hidden min-h-0 md:block md:col-start-1">
+    <!-- CHANGEMENT ICI : max-md:hidden au lieu de hidden md:flex -->
+    <div class="w-full max-md:hidden md:col-start-1">
       <MultiplayerScoreboard
+        class="h-full"
         :scoreboard="scoreboard"
         :player-id="playerId"
         :round-index="roundIndex"
@@ -37,8 +42,8 @@
       />
     </div>
 
-    <!-- Colonne principale : Mot + Actions (toujours visible) -->
-    <div class="flex min-h-0 flex-col items-center justify-center gap-3 md:overflow-y-auto md:scrollbar-thin md:scrollbar-track-slate-950/50 md:scrollbar-thumb-slate-700/50 md:col-start-2">
+    <!-- Colonne principale : Mot + Actions -->
+    <div class="flex flex-shrink-0 items-center justify-center py-2 md:col-start-2 md:w-full md:flex-1 md:py-0">
       <WordActionPanel
         :current-word="currentWord"
         :word-preview="wordPreview"
@@ -50,8 +55,9 @@
     </div>
 
     <!-- Version desktop : Historique à droite -->
-    <div class="hidden min-h-0 md:flex md:col-start-3">
-      <MultiplayerWordHistory />
+    <!-- CHANGEMENT ICI : max-md:hidden au lieu de hidden md:flex -->
+    <div class="w-full max-md:hidden md:col-start-3">
+      <MultiplayerWordHistory class="h-full" />
     </div>
   </section>
 </template>

@@ -1,7 +1,7 @@
 <template>
-  <section class="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-slate-700/50 bg-gradient-to-br from-slate-900/70 to-slate-950/60 p-2.5 backdrop-blur-sm sm:p-3">
+  <section class="scoreboard-container flex h-full max-h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-slate-700/50 bg-gradient-to-br from-slate-900/70 to-slate-950/60 p-2.5 backdrop-blur-sm sm:p-3">
     <!-- En-tête -->
-    <header class="mb-2 flex items-center justify-between border-b border-slate-700/30 pb-2">
+    <header class="mb-2 flex flex-shrink-0 items-center justify-between border-b border-slate-700/30 pb-2">
       <div class="flex items-center gap-1.5">
         <span class="text-base">🏆</span>
         <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Classement</p>
@@ -158,6 +158,13 @@ const getScoreBadgeClasses = (player: typeof props.scoreboard[0]) => {
 </script>
 
 <style scoped>
+/* FORCE L'AFFICHAGE - Enlève tout display:none */
+.scoreboard-container {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
 /* Scrollbar personnalisée */
 .scoreboard-scroll {
   scrollbar-width: thin;

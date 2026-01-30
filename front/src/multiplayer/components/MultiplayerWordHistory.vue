@@ -1,10 +1,10 @@
 <template>
   <section
-    class="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-slate-700/50 bg-gradient-to-br from-slate-900/70 to-slate-950/60 p-2.5 backdrop-blur-sm sm:p-3"
+    class="history-container flex h-full max-h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-slate-700/50 bg-gradient-to-br from-slate-900/70 to-slate-950/60 p-2.5 backdrop-blur-sm sm:p-3"
     aria-label="Historique des mots"
   >
     <!-- Titre -->
-    <div class="mb-2 flex items-center gap-1.5 border-b border-slate-700/30 pb-2">
+    <div class="mb-2 flex flex-shrink-0 items-center gap-1.5 border-b border-slate-700/30 pb-2">
       <span class="text-base">📝</span>
       <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
         Historique
@@ -71,6 +71,13 @@ const displayHistory = computed(() => wordHistory.value.slice(0, 20));
 </script>
 
 <style scoped>
+/* FORCE L'AFFICHAGE - Enlève tout display:none */
+.history-container {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
 /* Scrollbar personnalisée */
 .history-scroll {
   scrollbar-width: thin;
