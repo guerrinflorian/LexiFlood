@@ -9,6 +9,9 @@ const SOCKET_URL = import.meta.env.VITE_API_URL || `http://${window.location.hos
 const INTERMISSION_TICK_MS = 250;
 const PLAYER_NAME_STORAGE_KEY = 'lexiflood_player_name';
 const DEFAULT_PLAYER_NAME = 'LexiHero';
+const MULTIPLIER_BASE = 1;
+const MULTIPLIER_MIN = 0.75;
+const MULTIPLIER_MAX = 5;
 
 type Slot = {
   id: number;
@@ -22,6 +25,7 @@ type PlayerSummary = {
   name: string;
   ready?: boolean;
   score: number;
+  multiplier?: number;
   ko: boolean;
   eliminated: boolean;
   connected: boolean;
@@ -97,6 +101,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     lastValidation: null as string | null,
     lastValidationStatus: null as 'success' | 'error' | null,
     errorIndices: [] as number[],
+    scoreMultiplier: MULTIPLIER_BASE,
     roundResult: null as {
       eliminatedIds: string[];
       qualifiedIds: string[];
@@ -125,13 +130,14 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       }
       const isValid = isValidWord(normalizedWord);
       const points = computeScore(normalizedWord);
+      const multipliedPoints = Math.floor(points * state.scoreMultiplier);
       if (state.usedWords.includes(normalizedWord)) {
-        return { status: 'used', label: 'Mot déjà utilisé', points };
+        return { status: 'used', label: 'Mot déjà utilisé', points: multipliedPoints };
       }
       if (!isValid) {
         return { status: 'invalid', label: 'Mot invalide', points: 0 };
       }
-      return { status: 'valid', label: 'Mot valide', points };
+      return { status: 'valid', label: 'Mot valide', points: multipliedPoints };
     }
   },
   actions: {
@@ -200,6 +206,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
 
       socket.on('game:scoreboard', ({ scoreboard }) => {
         this.scoreboard = scoreboard;
+        this.syncMultiplierFromScoreboard();
       });
 
       socket.on('game:round:end', (payload) => {
@@ -258,6 +265,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
         }
         const points = payload.points ?? 0;
         const word = payload.word ?? '';
+        const multiplier = payload.multiplier;
         this.usedWords.push(word);
         this.lastValidation = `+${points} points pour ${word}`;
         this.lastValidationStatus = 'success';
@@ -265,6 +273,9 @@ export const useMultiplayerStore = defineStore('multiplayer', {
         this.removeSelectedLetters();
         if (word.length >= 5) {
           this.removeRandomLetter();
+        }
+        if (typeof multiplier === 'number') {
+          this.scoreMultiplier = multiplier;
         }
         this.resolveOverflowIfPossible();
       });
@@ -312,6 +323,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       this.stopIntermission();
       this.roundResult = null;
       this.finalResult = null;
+      this.scoreMultiplier = MULTIPLIER_BASE;
       notifySuccess(`Round ${payload.roundIndex + 1} commence !`);
       const startDelay = Math.max(payload.roundStartAt - Date.now(), 0);
       setTimeout(() => {
@@ -338,6 +350,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
           : [];
         letters.forEach((entry: { letter: string }) => this.applyLetter(entry.letter, { silent: true }));
         this.scoreboard = payload.scoreboard ?? [];
+        this.syncMultiplierFromScoreboard();
         const history = Array.isArray(payload.wordHistory) ? payload.wordHistory : [];
         this.wordHistory = history.map((entry: any) => {
           const timestamp = entry?.createdAt ? new Date(entry.createdAt) : new Date();
@@ -452,6 +465,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       this.lastValidation = null;
       this.lastValidationStatus = null;
       this.errorIndices = [];
+      this.scoreMultiplier = MULTIPLIER_BASE;
     },
     resetState() {
       this.phase = 'entry';
@@ -472,6 +486,12 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       this.finalResult = null;
       this.stopIntermission();
       this.resetBoard();
+    },
+    syncMultiplierFromScoreboard() {
+      const me = this.scoreboard.find((player) => player.id === this.playerId);
+      if (me && typeof me.multiplier === 'number') {
+        this.scoreMultiplier = Math.min(MULTIPLIER_MAX, Math.max(MULTIPLIER_MIN, me.multiplier));
+      }
     },
     applyLetter(letter: string, options: { silent?: boolean } = {}) {
       const emptySlotIndex = this.slots.findIndex((slot) => !slot.letter);

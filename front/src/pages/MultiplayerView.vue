@@ -1,5 +1,19 @@
 <template>
   <div class="relative flex h-screen flex-col overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <transition name="multiplier-pop">
+      <div
+        v-if="multiplierPopupVisible"
+        class="pointer-events-none absolute inset-0 z-50 flex items-center justify-center"
+        aria-hidden="true"
+      >
+        <div class="rounded-3xl border border-orange-300/30 bg-slate-950/30 px-8 py-5 text-center shadow-[0_0_40px_rgba(251,146,60,0.35)] backdrop-blur-sm">
+          <p class="text-[10px] font-bold uppercase tracking-[0.35em] text-orange-200/80">Multiplicateur</p>
+          <p class="mt-1 text-5xl font-black text-orange-200 drop-shadow-[0_0_18px_rgba(251,146,60,0.45)] sm:text-6xl">
+            x{{ multiplierPopupLabel }}
+          </p>
+        </div>
+      </div>
+    </transition>
     <div
       class="pointer-events-none absolute inset-0 z-0 bg-cover bg-center opacity-30"
       :style="{ backgroundImage: `url(${backgroundGame})` }"
@@ -78,7 +92,12 @@
     />
 
     <div v-if="phase !== 'entry' && phase !== 'lobby'" class="relative z-10 border-t border-slate-800/50 bg-gradient-to-t from-slate-950/98 via-slate-950/95 to-transparent px-3 pb-4 pt-3 backdrop-blur-md md:px-4 md:pb-5">
-      <MultiplayerBoard />
+      <div class="flex items-end gap-2 md:gap-3">
+        <ScoreMultiplierGauge :multiplier="scoreMultiplier" />
+        <div class="flex-1">
+          <MultiplayerBoard />
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -95,6 +114,7 @@ import MultiplayerHeader from '../multiplayer/components/MultiplayerHeader.vue';
 import MultiplayerLobby from '../multiplayer/components/MultiplayerLobby.vue';
 import MultiplayerRoundEndOverlay from '../multiplayer/components/MultiplayerRoundEndOverlay.vue';
 import MultiplayerRoundSection from '../multiplayer/components/MultiplayerRoundSection.vue';
+import ScoreMultiplierGauge from '../components/ScoreMultiplierGauge.vue';
 import { useMultiplayerStore } from '../multiplayer/useMultiplayerStore';
 
 const emit = defineEmits<{ (event: 'quit'): void }>();
@@ -117,7 +137,8 @@ const {
   wordPreview,
   roundResult,
   finalResult,
-  playerName
+  playerName,
+  scoreMultiplier
 } = storeToRefs(store);
 const {
   createRoom,
@@ -133,6 +154,14 @@ const {
 
 const roomInput = ref('');
 const $q = useQuasar();
+const multiplierPopupVisible = ref(false);
+const multiplierPopupValue = ref(1);
+let multiplierPopupTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const multiplierPopupLabel = computed(() => {
+  const raw = multiplierPopupValue.value.toFixed(2);
+  return raw.replace(/\.?0+$/, '');
+});
 const handleKeydown = (event: KeyboardEvent) => {
   const target = event.target as HTMLElement | null;
   if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
@@ -307,6 +336,29 @@ watch(
   }
 );
 
+watch(
+  scoreMultiplier,
+  (next, prev) => {
+    if (typeof prev !== 'number' || typeof next !== 'number') {
+      return;
+    }
+    if (next <= prev) {
+      return;
+    }
+    multiplierPopupValue.value = next;
+    multiplierPopupVisible.value = true;
+    if (multiplierPopupTimeout) {
+      clearTimeout(multiplierPopupTimeout);
+      multiplierPopupTimeout = null;
+    }
+    multiplierPopupTimeout = setTimeout(() => {
+      multiplierPopupVisible.value = false;
+      multiplierPopupTimeout = null;
+    }, 1500);
+  },
+  { flush: 'post' }
+);
+
 const handleCreate = () => {
   createRoom(playerName.value);
 };
@@ -347,5 +399,22 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown);
+  if (multiplierPopupTimeout) {
+    clearTimeout(multiplierPopupTimeout);
+    multiplierPopupTimeout = null;
+  }
 });
 </script>
+
+<style scoped>
+.multiplier-pop-enter-active,
+.multiplier-pop-leave-active {
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.multiplier-pop-enter-from,
+.multiplier-pop-leave-to {
+  opacity: 0;
+  transform: scale(0.96);
+}
+</style>
