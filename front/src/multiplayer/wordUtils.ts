@@ -75,25 +75,30 @@ export const computeScore = (word: string) => {
   return Math.floor(letterSum * multiplier + bonus);
 };
 
-const matchesWithWildcards = (word: string): boolean => {
+const resolveWithWildcards = (word: string): string | null => {
   const wildcardIndex = word.indexOf('?');
   if (wildcardIndex === -1) {
-    return DICTIONARY.has(word);
+    return DICTIONARY.has(word) ? word : null;
   }
   const prefix = word.slice(0, wildcardIndex);
   const suffix = word.slice(wildcardIndex + 1);
   for (const letter of ALPHABET) {
-    if (matchesWithWildcards(`${prefix}${letter}${suffix}`)) {
-      return true;
+    const resolved = resolveWithWildcards(`${prefix}${letter}${suffix}`);
+    if (resolved) {
+      return resolved;
     }
   }
-  return false;
+  return null;
+};
+
+export const resolveWord = (value: string) => {
+  const normalized = normalizeWord(value);
+  if (!normalized) {
+    return null;
+  }
+  return resolveWithWildcards(normalized);
 };
 
 export const isValidWord = (value: string) => {
-  const normalized = normalizeWord(value);
-  if (!normalized) {
-    return false;
-  }
-  return matchesWithWildcards(normalized);
+  return Boolean(resolveWord(value));
 };

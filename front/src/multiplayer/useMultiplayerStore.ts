@@ -1,7 +1,7 @@
 import { Notify } from 'quasar';
 import { defineStore } from 'pinia';
 import { io, type Socket } from 'socket.io-client';
-import { computeScore, isValidWord, normalizeWord } from './wordUtils';
+import { computeScore, isValidWord, normalizeWord, resolveWord } from './wordUtils';
 
 const MAX_SLOTS = 20;
 const OVERFLOW_COUNTDOWN_SECONDS = 5;
@@ -97,7 +97,15 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     overflowCountdown: null as number | null,
     intermissionCountdown: null as number | null,
     usedWords: [] as string[],
-    wordHistory: [] as Array<{ id: string; playerId: string; playerName: string; points: number; time: string }>,
+    wordHistory: [] as Array<{
+      id: string;
+      playerId: string;
+      playerName: string;
+      word: string;
+      wildcardIndices: number[];
+      points: number;
+      time: string;
+    }>,
     lastValidation: null as string | null,
     lastValidationStatus: null as 'success' | 'error' | null,
     errorIndices: [] as number[],
@@ -128,10 +136,11 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       if (!normalizedWord) {
         return { status: 'empty', label: 'Sélectionnez des lettres', points: 0 };
       }
-      const isValid = isValidWord(normalizedWord);
+      const resolvedWord = resolveWord(normalizedWord);
+      const isValid = Boolean(resolvedWord);
       const points = computeScore(normalizedWord);
       const multipliedPoints = Math.floor(points * state.scoreMultiplier);
-      if (state.usedWords.includes(normalizedWord)) {
+      if (resolvedWord && state.usedWords.includes(resolvedWord)) {
         return { status: 'used', label: 'Mot déjà utilisé', points: multipliedPoints };
       }
       if (!isValid) {
@@ -234,6 +243,8 @@ export const useMultiplayerStore = defineStore('multiplayer', {
             id: payload.id ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
             playerId: payload.playerId ?? '',
             playerName: payload.playerName ?? 'Joueur',
+            word: payload.word ?? '',
+            wildcardIndices: payload.wildcardIndices ?? [],
             points: payload.points ?? 0,
             time: timeLabel
           },
@@ -363,6 +374,8 @@ export const useMultiplayerStore = defineStore('multiplayer', {
             id: entry?.id ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
             playerId: entry?.playerId ?? '',
             playerName: entry?.playerName ?? 'Joueur',
+            word: entry?.word ?? '',
+            wildcardIndices: entry?.wildcardIndices ?? [],
             points: entry?.points ?? 0,
             time: timeLabel
           };
@@ -632,14 +645,15 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       }
       const word = this.currentWord;
       const normalizedWord = normalizeWord(word);
-      if (this.usedWords.includes(normalizedWord)) {
-        this.lastValidation = `${word} a déjà été joué.`;
+      const resolvedWord = resolveWord(normalizedWord);
+      if (resolvedWord && this.usedWords.includes(resolvedWord)) {
+        this.lastValidation = `${resolvedWord} a déjà été joué.`;
         this.lastValidationStatus = 'error';
         notifyError(this.lastValidation);
         this.clearSelection();
         return;
       }
-      if (!isValidWord(normalizedWord)) {
+      if (!resolvedWord || !isValidWord(normalizedWord)) {
         this.lastValidation = `${word} n'est pas valide.`;
         this.lastValidationStatus = 'error';
         notifyError(this.lastValidation);

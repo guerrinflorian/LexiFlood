@@ -37,10 +37,16 @@
           </div>
         </div>
         
-        <!-- Mot caché et points -->
+        <!-- Mot et points -->
         <div class="flex items-center gap-1.5">
-          <span class="hidden-word-badge">
-            🔒
+          <span class="word-badge">
+            <span
+              v-for="(letter, index) in entry.word.split('')"
+              :key="`${entry.id}-${index}`"
+              :class="entry.wildcardIndices.includes(index) ? 'wildcard-letter' : ''"
+            >
+              {{ letter }}
+            </span>
           </span>
           <span class="points-badge">
             +{{ entry.points }}
@@ -138,13 +144,25 @@ const displayHistory = computed(() => wordHistory.value.slice(0, 20));
   box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
 }
 
-/* Badge mot caché */
-.hidden-word-badge {
-  display: flex;
+/* Badge mot */
+.word-badge {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  font-size: 0.625rem;
-  opacity: 0.6;
+  gap: 0.05rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.4rem;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(100, 116, 139, 0.4);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.wildcard-letter {
+  color: #fb923c;
 }
 
 /* Badge de points */
@@ -181,8 +199,8 @@ const displayHistory = computed(() => wordHistory.value.slice(0, 20));
     font-size: 0.625rem;
   }
   
-  .hidden-word-badge {
-    font-size: 0.5625rem;
+  .word-badge {
+    font-size: 0.6rem;
   }
 }
 </style>

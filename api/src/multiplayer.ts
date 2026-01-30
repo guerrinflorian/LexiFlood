@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { checkWord } from './dictionary';
+import { resolveWord } from './dictionary';
 
 const LETTER_BAG_COUNTS: Record<string, number> = {
   E: 15,
@@ -263,6 +263,8 @@ type WordHistoryEntry = {
   id: string;
   playerId: string;
   playerName: string;
+  word: string;
+  wildcardIndices: number[];
   points: number;
   createdAt: number;
 };
@@ -747,24 +749,30 @@ export const registerMultiplayer = (io: Server) => {
         socket.emit('word:result', { ok: false, message: 'Mot vide.' });
         return;
       }
-      if (player.usedWords.has(normalized)) {
-        socket.emit('word:result', { ok: false, message: 'Mot déjà utilisé.' });
-        return;
-      }
-      if (!checkWord(normalized)) {
+      const resolvedWord = resolveWord(normalized);
+      if (!resolvedWord) {
         socket.emit('word:result', { ok: false, message: 'Mot invalide.' });
         return;
       }
+      if (player.usedWords.has(resolvedWord)) {
+        socket.emit('word:result', { ok: false, message: 'Mot déjà utilisé.' });
+        return;
+      }
+      const wildcardIndices = normalized
+        .split('')
+        .map((letter, index) => (letter === '?' ? index : null))
+        .filter((index): index is number => index !== null);
       const basePoints = computeScore(normalized);
       const points = Math.floor(basePoints * player.scoreMultiplier);
       player.score += points;
       player.scoreMultiplier = clampMultiplier(
         player.scoreMultiplier + getMultiplierDelta(normalized.length)
       );
-      player.usedWords.add(normalized);
+      player.usedWords.add(resolvedWord);
       socket.emit('word:result', {
         ok: true,
-        word: normalized,
+        word: resolvedWord,
+        wildcardIndices,
         points,
         score: player.score,
         multiplier: player.scoreMultiplier
@@ -773,6 +781,8 @@ export const registerMultiplayer = (io: Server) => {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         playerId: player.id,
         playerName: player.name,
+        word: resolvedWord,
+        wildcardIndices,
         points,
         createdAt: Date.now()
       };

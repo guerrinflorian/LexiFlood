@@ -337,6 +337,19 @@ watch(
 );
 
 watch(
+  phase,
+  (nextPhase) => {
+    if (nextPhase === 'entry' || nextPhase === 'lobby') {
+      multiplierPopupVisible.value = false;
+      if (multiplierPopupTimeout) {
+        clearTimeout(multiplierPopupTimeout);
+        multiplierPopupTimeout = null;
+      }
+    }
+  }
+);
+
+watch(
   scoreMultiplier,
   (next, prev) => {
     if (typeof prev !== 'number' || typeof next !== 'number') {
