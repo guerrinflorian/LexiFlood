@@ -158,16 +158,22 @@ const computeScore = (word: string) => {
 
 const getMultiplierDelta = (length: number) => {
   if (length === 1) {
-    return -0.25;
-  }
-  if (length === 2) {
     return -0.5;
   }
+  if (length === 2) {
+    return -0.25;
+  }
   if (length === 3) {
-    return -0.1;
+    return -0.15;
+  }
+  if (length === 4) {
+    return -0.05;
+  }
+  if (length === 5) {
+    return 0.05;
   }
   if (length === 6) {
-    return 0.25;
+    return 0.20;
   }
   if (length === 7) {
     return 0.5;
