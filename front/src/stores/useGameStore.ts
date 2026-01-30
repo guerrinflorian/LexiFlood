@@ -71,6 +71,10 @@ const LETTER_POINTS: Record<string, number> = {
   Z: 5
 };
 
+const MULTIPLIER_BASE = 1;
+const MULTIPLIER_MIN = 0.75;
+const MULTIPLIER_MAX = 5;
+
 const createSlots = () =>
   Array.from({ length: MAX_SLOTS }, (_, index) => ({
     id: index,
@@ -96,7 +100,8 @@ const normalizeWord = (value: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^A-Z]/g, '');
 
-const DICTIONARY = new Set(words.map((word) => normalizeWord(word)).filter(Boolean));
+const WORD_LIST = Array.isArray(words) ? (words as string[]) : [];
+const DICTIONARY = new Set(WORD_LIST.map((word) => normalizeWord(word)).filter(Boolean));
 
 const getLengthModifiers = (length: number) => {
   if (length === 2) {
@@ -132,6 +137,30 @@ const computeScore = (word: string) => {
   const { multiplier, bonus } = getLengthModifiers(word.length);
   return Math.floor(letterSum * multiplier + bonus);
 };
+
+const getMultiplierDelta = (length: number) => {
+  if (length === 2) {
+    return -0.5;
+  }
+  if (length === 3) {
+    return -0.1;
+  }
+  if (length === 6) {
+    return 0.25;
+  }
+  if (length === 7) {
+    return 0.5;
+  }
+  if (length === 8) {
+    return 0.75;
+  }
+  if (length > 8) {
+    return 1;
+  }
+  return 0;
+};
+
+const clampMultiplier = (value: number) => Math.min(MULTIPLIER_MAX, Math.max(MULTIPLIER_MIN, value));
 
 const notifyError = (message: string) => {
   Notify.create({
@@ -204,7 +233,8 @@ export const useGameStore = defineStore('game', {
     paused: false,
     pausedAt: null as number | null,
     pauseEndsAt: null as number | null,
-    pauseCooldownUntil: null as number | null
+    pauseCooldownUntil: null as number | null,
+    scoreMultiplier: MULTIPLIER_BASE
   }),
   getters: {
     currentWord(state) {
@@ -221,7 +251,8 @@ export const useGameStore = defineStore('game', {
         return { status: 'empty', label: 'Sélectionnez des lettres', points: 0 };
       }
       const isValid = DICTIONARY.has(normalizedWord);
-      const points = computeScore(normalizedWord);
+      const basePoints = computeScore(normalizedWord);
+      const points = Math.floor(basePoints * state.scoreMultiplier);
       if (state.usedWords.includes(normalizedWord)) {
         return { status: 'used', label: 'Mot déjà utilisé', points };
       }
@@ -292,6 +323,7 @@ export const useGameStore = defineStore('game', {
       this.pausedAt = null;
       this.pauseEndsAt = null;
       this.pauseCooldownUntil = null;
+      this.scoreMultiplier = MULTIPLIER_BASE;
       if (spawnInterval) {
         clearInterval(spawnInterval);
         spawnInterval = null;
@@ -513,7 +545,8 @@ export const useGameStore = defineStore('game', {
         return;
       }
       if (isValid && word.length > 0) {
-        const points = computeScore(normalizedWord);
+        const basePoints = computeScore(normalizedWord);
+        const points = Math.floor(basePoints * this.scoreMultiplier);
         const timestamp = new Date();
         const timeLabel = timestamp.toLocaleTimeString('fr-FR', {
           hour: '2-digit',
@@ -539,6 +572,9 @@ export const useGameStore = defineStore('game', {
         this.lastValidation = `+${points} points pour ${word}`;
         this.lastValidationStatus = 'success';
         notifySuccess(this.lastValidation);
+        this.scoreMultiplier = clampMultiplier(
+          this.scoreMultiplier + getMultiplierDelta(normalizedWord.length)
+        );
         if (this.score > this.highScore) {
           this.highScore = this.score;
           localStorage.setItem('lexiflood_highscore', String(this.score));
