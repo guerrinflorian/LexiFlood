@@ -1,5 +1,5 @@
 <template>
-  <section class="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden px-2 pb-2 md:grid md:grid-cols-[280px_minmax(0,1fr)_280px] md:gap-3 md:px-4 md:pb-3 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
+  <section class="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden px-2 pb-2 md:grid md:grid-cols-[280px_minmax(0,1fr)_280px] md:grid-rows-[minmax(0,1fr)] md:gap-3 md:px-4 md:pb-3 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
     
     <!-- Version mobile : Classement et Historique côte à côte en haut -->
     <!-- Visible UNIQUEMENT sur mobile avec md:hidden -->
@@ -26,7 +26,7 @@
 
     <!-- Version desktop : Classement à gauche -->
     <!-- CHANGEMENT ICI : max-md:hidden au lieu de hidden md:flex -->
-    <div class="w-full max-md:hidden md:col-start-1">
+    <div class="w-full min-h-0 overflow-hidden max-md:hidden md:col-start-1">
       <MultiplayerScoreboard
         class="h-full"
         :scoreboard="scoreboard"
@@ -56,7 +56,7 @@
 
     <!-- Version desktop : Historique à droite -->
     <!-- CHANGEMENT ICI : max-md:hidden au lieu de hidden md:flex -->
-    <div class="w-full max-md:hidden md:col-start-3">
+    <div class="w-full min-h-0 overflow-hidden max-md:hidden md:col-start-3">
       <MultiplayerWordHistory class="h-full" />
     </div>
   </section>

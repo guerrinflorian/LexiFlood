@@ -63,6 +63,10 @@ const LETTER_POINTS: Record<string, number> = {
   '?': 0
 };
 
+const MULTIPLIER_BASE = 1;
+const MULTIPLIER_MIN = 0.75;
+const MULTIPLIER_MAX = 5;
+
 const STANDARD_ROUND_DURATION_MS = 130_000;
 const EXTENDED_ROUND_DURATION_MS = 170_000;
 const LETTER_INTERVAL_MS = 2500;
@@ -110,6 +114,39 @@ const computeScore = (word: string) => {
   const { multiplier, bonus } = getLengthModifiers(word.length);
   return Math.floor(letterSum * multiplier + bonus);
 };
+
+const getMultiplierDelta = (length: number) => {
+  if (length === 1) {
+    return -0.5;
+  }
+  if (length === 2) {
+    return -0.25;
+  }
+  if (length === 3) {
+    return -0.15;
+  }
+  if (length === 4) {
+    return -0.05;
+  }
+  if (length === 5) {
+    return 0.05;
+  }
+  if (length === 6) {
+    return 0.2;
+  }
+  if (length === 7) {
+    return 0.5;
+  }
+  if (length === 8) {
+    return 0.75;
+  }
+  if (length > 8) {
+    return 1;
+  }
+  return 0;
+};
+
+const clampMultiplier = (value: number) => Math.min(MULTIPLIER_MAX, Math.max(MULTIPLIER_MIN, value));
 
 const buildLetterBag = () => {
   const bag: string[] = [];
@@ -214,6 +251,7 @@ type Player = {
   token: string;
   name: string;
   score: number;
+  scoreMultiplier: number;
   ko: boolean;
   eliminated: boolean;
   connected: boolean;
@@ -286,6 +324,7 @@ const formatScoreboard = (room: Room) => {
     id: player.id,
     name: player.name,
     score: player.score,
+    multiplier: player.scoreMultiplier,
     ko: player.ko,
     eliminated: player.eliminated,
     connected: player.connected,
@@ -340,6 +379,7 @@ const startRound = (io: Server, room: Room) => {
     player.score = 0;
     player.ko = false;
     player.usedWords = new Set();
+    player.scoreMultiplier = MULTIPLIER_BASE;
   });
 
   const generator = createLetterGenerator();
@@ -549,6 +589,7 @@ export const registerMultiplayer = (io: Server) => {
         token,
         name: name?.trim() || 'LexiHero',
         score: 0,
+        scoreMultiplier: MULTIPLIER_BASE,
         ko: false,
         eliminated: false,
         connected: true,
@@ -617,6 +658,7 @@ export const registerMultiplayer = (io: Server) => {
           token: newToken,
           name: name?.trim() || 'LexiHero',
           score: 0,
+          scoreMultiplier: MULTIPLIER_BASE,
           ko: false,
           eliminated: false,
           connected: true,
@@ -685,6 +727,7 @@ export const registerMultiplayer = (io: Server) => {
         player.ko = false;
         player.score = 0;
         player.usedWords = new Set();
+        player.scoreMultiplier = MULTIPLIER_BASE;
       });
       startRound(io, room);
     });
@@ -712,14 +755,19 @@ export const registerMultiplayer = (io: Server) => {
         socket.emit('word:result', { ok: false, message: 'Mot invalide.' });
         return;
       }
-      const points = computeScore(normalized);
+      const basePoints = computeScore(normalized);
+      const points = Math.floor(basePoints * player.scoreMultiplier);
       player.score += points;
+      player.scoreMultiplier = clampMultiplier(
+        player.scoreMultiplier + getMultiplierDelta(normalized.length)
+      );
       player.usedWords.add(normalized);
       socket.emit('word:result', {
         ok: true,
         word: normalized,
         points,
-        score: player.score
+        score: player.score,
+        multiplier: player.scoreMultiplier
       });
       const historyEntry: WordHistoryEntry = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
