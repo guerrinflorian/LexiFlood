@@ -263,6 +263,9 @@ export const useMultiplayerStore = defineStore('multiplayer', {
         this.lastValidationStatus = 'success';
         notifySuccess(this.lastValidation);
         this.removeSelectedLetters();
+        if (word.length >= 5) {
+          this.removeRandomLetter();
+        }
         this.resolveOverflowIfPossible();
       });
 
@@ -587,6 +590,17 @@ export const useMultiplayerStore = defineStore('multiplayer', {
         this.slots[index].selected = false;
       });
       this.selectedIndices = [];
+    },
+    removeRandomLetter() {
+      const occupiedIndices = this.slots
+        .map((slot, index) => (slot.letter ? index : null))
+        .filter((index): index is number => index !== null);
+      if (occupiedIndices.length === 0) {
+        return;
+      }
+      const targetIndex = occupiedIndices[Math.floor(Math.random() * occupiedIndices.length)];
+      this.slots[targetIndex].letter = null;
+      this.slots[targetIndex].selected = false;
     },
     submitWord() {
       if (this.selectedIndices.length === 0 || this.phase !== 'inRound') {

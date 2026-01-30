@@ -28,7 +28,8 @@ const LETTER_BAG_COUNTS: Record<string, number> = {
   K: 1,
   W: 1,
   X: 1,
-  Z: 1
+  Z: 1,
+  '?': 1
 };
 
 const VOWELS = new Set(['A', 'E', 'I', 'O', 'U', 'Y']);
@@ -68,7 +69,8 @@ const LETTER_POINTS: Record<string, number> = {
   Q: 5,
   K: 5,
   X: 5,
-  Z: 5
+  Z: 5,
+  '?': 0
 };
 
 const MULTIPLIER_BASE = 1;
@@ -98,10 +100,26 @@ const normalizeWord = (value: string) =>
     .toUpperCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^A-Z]/g, '');
+    .replace(/[^A-Z?]/g, '');
 
 const WORD_LIST = Array.isArray(words) ? (words as string[]) : [];
 const DICTIONARY = new Set(WORD_LIST.map((word) => normalizeWord(word)).filter(Boolean));
+const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+const matchesWithWildcards = (word: string): boolean => {
+  const wildcardIndex = word.indexOf('?');
+  if (wildcardIndex === -1) {
+    return DICTIONARY.has(word);
+  }
+  const prefix = word.slice(0, wildcardIndex);
+  const suffix = word.slice(wildcardIndex + 1);
+  for (const letter of ALPHABET) {
+    if (matchesWithWildcards(`${prefix}${letter}${suffix}`)) {
+      return true;
+    }
+  }
+  return false;
+};
 
 const getLengthModifiers = (length: number) => {
   if (length === 2) {
@@ -250,7 +268,7 @@ export const useGameStore = defineStore('game', {
       if (!normalizedWord) {
         return { status: 'empty', label: 'Sélectionnez des lettres', points: 0 };
       }
-      const isValid = DICTIONARY.has(normalizedWord);
+      const isValid = matchesWithWildcards(normalizedWord);
       const basePoints = computeScore(normalizedWord);
       const points = Math.floor(basePoints * state.scoreMultiplier);
       if (state.usedWords.includes(normalizedWord)) {
@@ -541,13 +559,24 @@ export const useGameStore = defineStore('game', {
       });
       this.selectedIndices = [];
     },
+    removeRandomLetter() {
+      const occupiedIndices = this.slots
+        .map((slot, index) => (slot.letter ? index : null))
+        .filter((index): index is number => index !== null);
+      if (occupiedIndices.length === 0) {
+        return;
+      }
+      const targetIndex = occupiedIndices[Math.floor(Math.random() * occupiedIndices.length)];
+      this.slots[targetIndex].letter = null;
+      this.slots[targetIndex].selected = false;
+    },
     submitWord() {
       if (this.selectedIndices.length === 0 || this.paused) {
         return;
       }
       const word = this.currentWord;
       const normalizedWord = normalizeWord(word);
-      const isValid = DICTIONARY.has(normalizedWord);
+      const isValid = matchesWithWildcards(normalizedWord);
       if (this.usedWords.includes(normalizedWord)) {
         this.lastValidation = `${word} a déjà été joué.`;
         this.lastValidationStatus = 'error';
@@ -580,6 +609,9 @@ export const useGameStore = defineStore('game', {
           this.slots[index].selected = false;
         });
         this.selectedIndices = [];
+        if (normalizedWord.length >= 5) {
+          this.removeRandomLetter();
+        }
         this.lastValidation = `+${points} points pour ${word}`;
         this.lastValidationStatus = 'success';
         notifySuccess(this.lastValidation);
