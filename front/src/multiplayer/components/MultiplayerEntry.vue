@@ -1,6 +1,21 @@
 <template>
   <section class="relative z-10 flex flex-1 items-center justify-center px-4 py-4 sm:px-6">
     <div class="w-full max-w-md space-y-4">
+      <!-- Bouton retour -->
+      <div class="flex justify-start">
+        <q-btn
+          flat
+          round
+          icon="arrow_back"
+          color="slate-400"
+          size="md"
+          class="back-btn"
+          @click="emit('quit')"
+        >
+          <q-tooltip class="text-xs">Retour au menu</q-tooltip>
+        </q-btn>
+      </div>
+
       <!-- En-tête -->
       <div class="futuristic-card p-4 text-center sm:p-5">
         <div class="mb-2 flex justify-center">
@@ -94,12 +109,24 @@ const emit = defineEmits<{
   (event: 'update:roomInput', value: string): void;
   (event: 'create'): void;
   (event: 'join'): void;
+  (event: 'quit'): void;
 }>();
 </script>
 
 <style scoped>
 /* Import Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap');
+
+/* Bouton retour */
+:deep(.back-btn) {
+  color: rgb(148, 163, 184) !important;
+  transition: all 0.3s ease;
+}
+
+:deep(.back-btn:hover) {
+  color: rgb(6, 182, 212) !important;
+  background: rgba(6, 182, 212, 0.1) !important;
+}
 
 /* Carte futuriste */
 .futuristic-card {

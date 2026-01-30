@@ -31,6 +31,7 @@
       v-model:room-input="roomInput"
       @create="handleCreate"
       @join="handleJoin"
+      @quit="confirmQuit"
     />
 
     <MultiplayerLobby
