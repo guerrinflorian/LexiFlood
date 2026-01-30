@@ -26,7 +26,8 @@ const LETTER_POINTS: Record<string, number> = {
   Q: 5,
   K: 5,
   X: 5,
-  Z: 5
+  Z: 5,
+  '?': 0
 };
 
 export const normalizeWord = (value: string) =>
@@ -34,9 +35,10 @@ export const normalizeWord = (value: string) =>
     .toUpperCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^A-Z]/g, '');
+    .replace(/[^A-Z?]/g, '');
 
 const DICTIONARY = new Set(words.map((word) => normalizeWord(word)).filter(Boolean));
+const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 const getLengthModifiers = (length: number) => {
   if (length === 2) {
@@ -73,7 +75,25 @@ export const computeScore = (word: string) => {
   return Math.floor(letterSum * multiplier + bonus);
 };
 
+const matchesWithWildcards = (word: string): boolean => {
+  const wildcardIndex = word.indexOf('?');
+  if (wildcardIndex === -1) {
+    return DICTIONARY.has(word);
+  }
+  const prefix = word.slice(0, wildcardIndex);
+  const suffix = word.slice(wildcardIndex + 1);
+  for (const letter of ALPHABET) {
+    if (matchesWithWildcards(`${prefix}${letter}${suffix}`)) {
+      return true;
+    }
+  }
+  return false;
+};
+
 export const isValidWord = (value: string) => {
   const normalized = normalizeWord(value);
-  return DICTIONARY.has(normalized);
+  if (!normalized) {
+    return false;
+  }
+  return matchesWithWildcards(normalized);
 };

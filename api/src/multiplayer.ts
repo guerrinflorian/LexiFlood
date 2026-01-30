@@ -27,7 +27,8 @@ const LETTER_BAG_COUNTS: Record<string, number> = {
   K: 1,
   W: 1,
   X: 1,
-  Z: 1
+  Z: 1,
+  '?': 1
 };
 
 const VOWELS = new Set(['A', 'E', 'I', 'O', 'U', 'Y']);
@@ -58,7 +59,8 @@ const LETTER_POINTS: Record<string, number> = {
   Q: 5,
   K: 5,
   X: 5,
-  Z: 5
+  Z: 5,
+  '?': 0
 };
 
 const STANDARD_ROUND_DURATION_MS = 130_000;
@@ -75,7 +77,7 @@ const normalizeWord = (value: string) =>
     .toUpperCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^A-Z]/g, '');
+    .replace(/[^A-Z?]/g, '');
 
 const getLengthModifiers = (length: number) => {
   if (length === 2) {
