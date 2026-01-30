@@ -11,25 +11,28 @@ const normalizeWord = (word: string) =>
 
 const wordSet = new Set(frenchWords.map((word) => normalizeWord(word)).filter(Boolean));
 
-const matchesWithWildcards = (word: string): boolean => {
+const resolveWithWildcards = (word: string): string | null => {
   const wildcardIndex = word.indexOf('?');
   if (wildcardIndex === -1) {
-    return wordSet.has(word);
+    return wordSet.has(word) ? word : null;
   }
   const prefix = word.slice(0, wildcardIndex);
   const suffix = word.slice(wildcardIndex + 1);
   for (const letter of ALPHABET) {
-    if (matchesWithWildcards(`${prefix}${letter}${suffix}`)) {
-      return true;
+    const resolved = resolveWithWildcards(`${prefix}${letter}${suffix}`);
+    if (resolved) {
+      return resolved;
     }
   }
-  return false;
+  return null;
 };
 
-export const checkWord = (word: string) => {
+export const resolveWord = (word: string) => {
   const normalized = normalizeWord(word);
   if (!normalized) {
-    return false;
+    return null;
   }
-  return matchesWithWildcards(normalized);
+  return resolveWithWildcards(normalized);
 };
+
+export const checkWord = (word: string) => Boolean(resolveWord(word));
