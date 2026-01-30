@@ -1,5 +1,12 @@
 <template>
   <div class="relative flex h-screen flex-col overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <transition name="danger-pulse">
+      <div
+        v-if="dangerOverlayVisible"
+        class="pointer-events-none absolute inset-0 z-40 border-4 border-rose-500/70 shadow-[0_0_45px_rgba(248,113,113,0.55)]"
+        aria-hidden="true"
+      ></div>
+    </transition>
     <transition name="multiplier-pop">
       <div
         v-if="multiplierPopupVisible"
@@ -86,7 +93,8 @@ const {
   score,
   highScore,
   pauseEndsAt,
-  scoreMultiplier
+  scoreMultiplier,
+  slots
 } = storeToRefs(store);
 const { clearSelection, submitWord, startSolo, resetGame, pauseGame, resumeGame, selectLetterFromKeyboard, removeLastSelectedLetter } = store;
 const $q = useQuasar();
@@ -100,6 +108,13 @@ let multiplierPopupTimeout: ReturnType<typeof setTimeout> | null = null;
 const multiplierPopupLabel = computed(() => {
   const raw = multiplierPopupValue.value.toFixed(2);
   return raw.replace(/\.?0+$/, '');
+});
+const dangerOverlayVisible = computed(() => {
+  if (gameOver.value) {
+    return false;
+  }
+  const emptySlots = slots.value.filter((slot) => !slot.letter).length;
+  return emptySlots <= 3;
 });
 
 const handleKeydown = (event: KeyboardEvent) => {
@@ -295,5 +310,15 @@ onBeforeUnmount(() => {
 .multiplier-pop-leave-to {
   opacity: 0;
   transform: scale(0.96);
+}
+
+.danger-pulse-enter-active,
+.danger-pulse-leave-active {
+  transition: opacity 200ms ease;
+}
+
+.danger-pulse-enter-from,
+.danger-pulse-leave-to {
+  opacity: 0;
 }
 </style>
