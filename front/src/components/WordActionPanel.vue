@@ -17,29 +17,35 @@
 
       <div class="flex h-8 items-center justify-center sm:h-10 md:h-12 lg:h-16">
         <div
-          class="word-display futuristic-glow overflow-hidden px-1 font-bold"
+          ref="wordDisplayRef"
+          class="word-display futuristic-glow overflow-visible px-1 font-bold"
           :class="wordSizeClass"
           style="font-family: 'Orbitron', 'Rajdhani', 'Exo 2', monospace; line-height: 1;"
         >
-          <TransitionGroup name="word-letter" tag="div" class="word-letters">
+          <svg ref="svgRef" class="word-svg">
+            <defs>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+          </svg>
+          
+          <div class="word-letters">
             <span
               v-for="entry in letterEntries"
               :key="entry.id"
+              :ref="el => setLetterRef(el, entry.id)"
               class="word-letter"
-              :style="entry.style"
+              :style="{ color: entry.color }"
             >
-              <span class="word-letter-char">{{ entry.char }}</span>
-              <span v-if="entry.burstItems.length" class="word-burst" aria-hidden="true">
-                <span
-                  v-for="item in entry.burstItems"
-                  :key="item.id"
-                  class="word-burst-item"
-                  :class="item.type === 'tri' ? 'word-burst-tri' : 'word-burst-dot'"
-                  :style="item.style"
-                ></span>
-              </span>
+              {{ entry.char }}
             </span>
-          </TransitionGroup>
+          </div>
+          
           <span v-if="!letterEntries.length" class="word-placeholder">—</span>
         </div>
       </div>
@@ -70,7 +76,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, nextTick, onMounted } from 'vue';
+import { gsap } from 'gsap';
 
 type WordPreview = {
   status: 'valid' | 'used' | 'invalid' | 'pending' | string;
@@ -78,17 +85,10 @@ type WordPreview = {
   points: number;
 };
 
-type BurstItem = {
-  id: number;
-  type: 'tri' | 'dot';
-  style: Record<string, string>;
-};
-
 type LetterEntry = {
   id: number;
   char: string;
-  style: Record<string, string>;
-  burstItems: BurstItem[];
+  color: string;
 };
 
 const props = defineProps<{
@@ -101,59 +101,184 @@ const props = defineProps<{
 const emit = defineEmits<{ (event: 'clear'): void; (event: 'submit'): void }>();
 
 const letterEntries = ref<LetterEntry[]>([]);
+const letterRefs = ref<Map<number, HTMLElement>>(new Map());
+const wordDisplayRef = ref<HTMLElement | null>(null);
+const svgRef = ref<SVGSVGElement | null>(null);
 let letterCounter = 0;
-let burstCounter = 0;
 
-const letterColor = (char: string) => {
-  const index = char.charCodeAt(0) % 4;
-  return ['var(--neon-cyan)', 'var(--neon-magenta)', 'var(--neon-yellow)', 'var(--neon-green)'][index];
+const colors = [
+  { main: '#FBDB4A', shades: ['#FAE073', '#FCE790', '#FADD65', '#E4C650'] },
+  { main: '#F3934A', shades: ['#F7B989', '#F9CDAA', '#DD8644', '#F39C59'] },
+  { main: '#EB547D', shades: ['#EE7293', '#F191AB', '#D64D72', '#C04567'] },
+  { main: '#9F6AA7', shades: ['#B084B6', '#C19FC7', '#916198', '#82588A'] },
+  { main: '#5476B3', shades: ['#6382B9', '#829BC7', '#4D6CA3', '#3E5782'] },
+  { main: '#2BB19B', shades: ['#4DBFAD', '#73CDBF', '#27A18D', '#1F8171'] },
+  { main: '#70B984', shades: ['#7FBE90', '#98CBA6', '#68A87A', '#5E976E'] }
+];
+
+const setLetterRef = (el: any, id: number) => {
+  if (el) {
+    letterRefs.value.set(id, el);
+  }
 };
 
-const createBurstItems = () =>
-  Array.from({ length: 16 }, (_, index) => {
-    const angle = Math.random() * Math.PI * 2;
-    const distance = 18 + Math.random() * 18;
-    const x = Math.cos(angle) * distance;
-    const y = Math.sin(angle) * distance;
-    const scale = 0.4 + Math.random() * 0.8;
-    const rotation = Math.random() * 360;
-    return {
-      id: burstCounter++,
-      type: index % 2 === 0 ? 'tri' : 'dot',
-      style: {
-        '--burst-x': `${x}px`,
-        '--burst-y': `${y}px`,
-        '--burst-scale': `${scale}`,
-        '--burst-rotate': `${rotation}deg`,
-      },
-    };
-  });
+const getLetterColor = (index: number): { main: string; shades: string[] } => {
+  return colors[index % colors.length];
+};
 
-const createEntry = (char: string): LetterEntry => {
-  const rotation = -50 + Math.random() * 100;
-  const bounce = 10 + Math.random() * 12;
+const createEntry = (char: string, index: number): LetterEntry => {
   return {
     id: letterCounter++,
     char,
-    style: {
-      '--letter-rotation': `${rotation}deg`,
-      '--letter-bounce': `${bounce}px`,
-      '--letter-color': letterColor(char),
-    },
-    burstItems: createBurstItems(),
+    color: getLetterColor(index).main,
   };
 };
 
-const scheduleBurstClear = (entryId: number) => {
-  window.setTimeout(() => {
-    const index = letterEntries.value.findIndex((entry) => entry.id === entryId);
-    if (index === -1) {
-      return;
+const animateLetterIn = (element: HTMLElement, textSize: number) => {
+  const yOffset = (0.5 + Math.random() * 0.5) * textSize;
+  const rotation = -50 + Math.random() * 100;
+
+  gsap.fromTo(element, 
+    { scale: 0, opacity: 0, rotation: rotation },
+    { 
+      scale: 1, 
+      opacity: 1, 
+      duration: 0.4,
+      ease: 'back.out(1.7)'
     }
-    const updated = [...letterEntries.value];
-    updated[index] = { ...updated[index], burstItems: [] };
-    letterEntries.value = updated;
-  }, 650);
+  );
+
+  gsap.fromTo(element,
+    { y: 0 },
+    {
+      y: -yOffset,
+      duration: 0.2,
+      ease: 'power3.inOut',
+      yoyo: true,
+      repeat: 1
+    }
+  );
+
+  gsap.to(element, {
+    rotation: 0,
+    duration: 0.4,
+    ease: 'power3.inOut'
+  });
+};
+
+const animateLetterOut = (element: HTMLElement) => {
+  return gsap.to(element, {
+    scale: 0,
+    opacity: 0,
+    duration: 0.1,
+    ease: 'power2.in'
+  });
+};
+
+const createSVGElement = (type: string): SVGElement => {
+  return document.createElementNS('http://www.w3.org/2000/svg', type) as SVGElement;
+};
+
+const addTri = (x0: number, y0: number, shade: string, textSize: number) => {
+  if (!svgRef.value) return;
+
+  const tri = createSVGElement('polygon');
+  const a = Math.random();
+  const a2 = a + (-0.2 + Math.random() * 0.4);
+  const r = textSize * 0.52;
+  const r2 = r + textSize * Math.random() * 0.2;
+  const x = x0 + r * Math.cos(2 * Math.PI * a);
+  const y = y0 + r * Math.sin(2 * Math.PI * a);
+  const x2 = x0 + r2 * Math.cos(2 * Math.PI * a2);
+  const y2 = y0 + r2 * Math.sin(2 * Math.PI * a2);
+  const triSize = textSize * 0.1;
+  const scale = 0.3 + Math.random() * 0.7;
+  const offset = triSize * scale;
+
+  tri.setAttribute('points', `0,0 ${triSize * 2},0 ${triSize},${triSize * 2}`);
+  tri.style.fill = shade;
+  svgRef.value.appendChild(tri);
+
+  gsap.fromTo(tri,
+    {
+      rotation: Math.random() * 360,
+      scale: scale,
+      x: x - offset,
+      y: y - offset,
+      opacity: 1
+    },
+    {
+      x: x2 - offset,
+      y: y2 - offset,
+      opacity: 0,
+      duration: 0.6,
+      ease: 'power1.inOut',
+      onComplete: () => {
+        if (svgRef.value && tri.parentNode === svgRef.value) {
+          svgRef.value.removeChild(tri);
+        }
+      }
+    }
+  );
+};
+
+const addCirc = (x0: number, y0: number, textSize: number) => {
+  if (!svgRef.value) return;
+
+  const circ = createSVGElement('circle');
+  const a = Math.random();
+  const r = textSize * 0.52;
+  const r2 = r + textSize;
+  const x = x0 + r * Math.cos(2 * Math.PI * a);
+  const y = y0 + r * Math.sin(2 * Math.PI * a);
+  const x2 = x0 + r2 * Math.cos(2 * Math.PI * a);
+  const y2 = y0 + r2 * Math.sin(2 * Math.PI * a);
+  const circSize = textSize * 0.05 * Math.random();
+
+  circ.setAttribute('r', circSize.toString());
+  circ.style.fill = '#eee';
+  svgRef.value.appendChild(circ);
+
+  gsap.fromTo(circ,
+    {
+      x: x - circSize,
+      y: y - circSize,
+      opacity: 1
+    },
+    {
+      x: x2 - circSize,
+      y: y2 - circSize,
+      opacity: 0,
+      duration: 0.6,
+      ease: 'power1.inOut',
+      onComplete: () => {
+        if (svgRef.value && circ.parentNode === svgRef.value) {
+          svgRef.value.removeChild(circ);
+        }
+      }
+    }
+  );
+};
+
+const addDecor = (element: HTMLElement, colorData: { main: string; shades: string[] }, textSize: number) => {
+  setTimeout(() => {
+    const rect = element.getBoundingClientRect();
+    const parentRect = wordDisplayRef.value?.getBoundingClientRect();
+    if (!parentRect) return;
+
+    const x0 = rect.left - parentRect.left + rect.width / 2;
+    const y0 = rect.top - parentRect.top + rect.height / 2;
+    const shade = colorData.shades[Math.floor(Math.random() * 4)];
+
+    for (let i = 0; i < 8; i++) addTri(x0, y0, shade, textSize);
+    for (let i = 0; i < 8; i++) addCirc(x0, y0, textSize);
+  }, 150);
+};
+
+const getTextSize = (): number => {
+  if (!wordDisplayRef.value) return 24;
+  const computedStyle = window.getComputedStyle(wordDisplayRef.value);
+  return parseFloat(computedStyle.fontSize);
 };
 
 const wordPreviewClasses = computed(() => {
@@ -172,7 +297,6 @@ const wordPreviewClasses = computed(() => {
 const wordSizeClass = computed(() => {
   const wordLength = props.currentWord.length;
   
-  // Taille dynamique selon la longueur du mot - paliers plus doux
   if (wordLength === 0) return 'text-xl sm:text-2xl md:text-3xl lg:text-4xl';
   if (wordLength <= 6) return 'text-xl sm:text-2xl md:text-3xl lg:text-4xl';
   if (wordLength <= 8) return 'text-lg sm:text-xl md:text-2xl lg:text-3xl';
@@ -186,26 +310,54 @@ const variantClass = computed(() => props.variant ?? 'solo');
 
 watch(
   () => props.currentWord,
-  (word) => {
-    const chars = word.split('');
-    const previousEntries = letterEntries.value;
-    const nextEntries: LetterEntry[] = [];
+  async (newWord, oldWord) => {
+    const newChars = newWord.split('');
+    const oldChars = oldWord ? oldWord.split('') : [];
 
-    chars.forEach((char, index) => {
-      const previous = previousEntries[index];
-      if (previous && previous.char === char) {
-        nextEntries.push(previous);
-        return;
+    // Gérer les suppressions
+    for (let i = letterEntries.value.length - 1; i >= newChars.length; i--) {
+      const entry = letterEntries.value[i];
+      const element = letterRefs.value.get(entry.id);
+      if (element) {
+        await animateLetterOut(element);
       }
-      const entry = createEntry(char);
-      nextEntries.push(entry);
-      scheduleBurstClear(entry.id);
+      letterRefs.value.delete(entry.id);
+    }
+    letterEntries.value = letterEntries.value.slice(0, newChars.length);
+
+    // Gérer les ajouts et modifications
+    const nextEntries: LetterEntry[] = [];
+    newChars.forEach((char, index) => {
+      const existing = letterEntries.value[index];
+      if (existing && existing.char === char) {
+        nextEntries.push(existing);
+      } else {
+        const newEntry = createEntry(char, index);
+        nextEntries.push(newEntry);
+        
+        nextTick(() => {
+          const element = letterRefs.value.get(newEntry.id);
+          if (element) {
+            const textSize = getTextSize();
+            animateLetterIn(element, textSize);
+            addDecor(element, getLetterColor(index), textSize);
+          }
+        });
+      }
     });
 
     letterEntries.value = nextEntries;
   },
   { immediate: true }
 );
+
+onMounted(() => {
+  if (svgRef.value && wordDisplayRef.value) {
+    const rect = wordDisplayRef.value.getBoundingClientRect();
+    svgRef.value.setAttribute('width', rect.width.toString());
+    svgRef.value.setAttribute('height', rect.height.toString());
+  }
+});
 </script>
 
 <style scoped>
@@ -253,15 +405,26 @@ watch(
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.08em;
   color: #ffffff;
 }
 
+.word-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
 .word-letters {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.06em;
+  z-index: 1;
 }
 
 .word-letter {
@@ -269,93 +432,13 @@ watch(
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--letter-color, #ffffff);
   text-shadow:
     0 0 6px rgba(255, 255, 255, 0.9),
     0 0 14px currentColor,
     0 0 30px currentColor;
 }
 
-.word-letter-char {
-  position: relative;
-  z-index: 1;
-}
-
 .word-placeholder {
   color: rgba(226, 232, 240, 0.6);
-}
-
-.word-letter-enter-active {
-  animation: word-letter-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.word-letter-leave-active {
-  animation: word-letter-out 0.12s ease-in forwards;
-}
-
-.word-burst {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.word-burst-item {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: clamp(4px, 0.8vw, 8px);
-  height: clamp(4px, 0.8vw, 8px);
-  background: var(--letter-color, rgba(255, 255, 255, 0.85));
-  transform: translate(-50%, -50%) scale(var(--burst-scale)) rotate(var(--burst-rotate));
-  animation: word-burst-out 0.6s ease-in-out forwards;
-}
-
-.word-burst-dot {
-  border-radius: 999px;
-  background: #f8fafc;
-}
-
-.word-burst-tri {
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-}
-
-@keyframes word-letter-in {
-  0% {
-    transform: translateY(0) scale(0) rotate(var(--letter-rotation, 0deg));
-    opacity: 0;
-  }
-  50% {
-    transform: translateY(calc(-1 * var(--letter-bounce, 12px))) scale(1.05) rotate(var(--letter-rotation, 0deg));
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(0) scale(1) rotate(0deg);
-    opacity: 1;
-  }
-}
-
-@keyframes word-letter-out {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(0);
-    opacity: 0;
-  }
-}
-
-@keyframes word-burst-out {
-  0% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(var(--burst-scale)) rotate(var(--burst-rotate));
-  }
-  100% {
-    opacity: 0;
-    transform:
-      translate(calc(-50% + var(--burst-x)), calc(-50% + var(--burst-y)))
-      scale(0)
-      rotate(calc(var(--burst-rotate) + 90deg));
-  }
 }
 </style>

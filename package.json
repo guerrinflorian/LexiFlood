@@ -19,6 +19,7 @@
     "an-array-of-french-words": "^2.0.0",
     "axios": "^1.7.7",
     "fastify": "^4.28.1",
+    "gsap": "^3.14.2",
     "pinia": "^2.2.2",
     "quasar": "^2.17.2",
     "socket.io": "^4.7.5",
