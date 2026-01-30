@@ -19,14 +19,14 @@ const LETTER_POINTS: Record<string, number> = {
   P: 2,
   F: 3,
   H: 3,
-  V: 3,
-  W: 3,
+  V: 5,
+  W: 5,
   Y: 3,
-  J: 5,
-  Q: 5,
-  K: 5,
-  X: 5,
-  Z: 5,
+  J: 8,
+  Q: 8,
+  K: 8,
+  X: 8,
+  Z: 10,
   '?': 0
 };
 
