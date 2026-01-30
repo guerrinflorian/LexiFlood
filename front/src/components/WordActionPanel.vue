@@ -122,15 +122,22 @@ const setLetterRef = (el: any, id: number) => {
   }
 };
 
-const getLetterColor = (index: number): { main: string; shades: string[] } => {
-  return colors[index % colors.length];
+const letterColor = (char: string) => {
+  const index = char.charCodeAt(0) % 4;
+  const colorMap = ['var(--neon-cyan)', 'var(--neon-magenta)', 'var(--neon-yellow)', 'var(--neon-green)'];
+  return colorMap[index];
 };
 
-const createEntry = (char: string, index: number): LetterEntry => {
+const getColorDataForDecor = (char: string): { main: string; shades: string[] } => {
+  const index = char.charCodeAt(0) % colors.length;
+  return colors[index];
+};
+
+const createEntry = (char: string): LetterEntry => {
   return {
     id: letterCounter++,
     char,
-    color: getLetterColor(index).main,
+    color: letterColor(char),
   };
 };
 
@@ -163,15 +170,6 @@ const animateLetterIn = (element: HTMLElement, textSize: number) => {
     rotation: 0,
     duration: 0.4,
     ease: 'power3.inOut'
-  });
-};
-
-const animateLetterOut = (element: HTMLElement) => {
-  return gsap.to(element, {
-    scale: 0,
-    opacity: 0,
-    duration: 0.1,
-    ease: 'power2.in'
   });
 };
 
@@ -310,43 +308,40 @@ const variantClass = computed(() => props.variant ?? 'solo');
 
 watch(
   () => props.currentWord,
-  async (newWord, oldWord) => {
+  (newWord, oldWord) => {
     const newChars = newWord.split('');
     const oldChars = oldWord ? oldWord.split('') : [];
 
-    // Gérer les suppressions
-    for (let i = letterEntries.value.length - 1; i >= newChars.length; i--) {
-      const entry = letterEntries.value[i];
-      const element = letterRefs.value.get(entry.id);
-      if (element) {
-        await animateLetterOut(element);
+    // Gérer les suppressions - SANS ANIMATION
+    if (newChars.length < letterEntries.value.length) {
+      // Supprimer les lettres en trop sans animation
+      for (let i = letterEntries.value.length - 1; i >= newChars.length; i--) {
+        const entry = letterEntries.value[i];
+        letterRefs.value.delete(entry.id);
       }
-      letterRefs.value.delete(entry.id);
+      letterEntries.value = letterEntries.value.slice(0, newChars.length);
+      return; // Sortir immédiatement pour éviter toute autre animation
     }
-    letterEntries.value = letterEntries.value.slice(0, newChars.length);
 
-    // Gérer les ajouts et modifications
-    const nextEntries: LetterEntry[] = [];
-    newChars.forEach((char, index) => {
-      const existing = letterEntries.value[index];
-      if (existing && existing.char === char) {
-        nextEntries.push(existing);
-      } else {
-        const newEntry = createEntry(char, index);
-        nextEntries.push(newEntry);
+    // Gérer uniquement les AJOUTS
+    if (newChars.length > letterEntries.value.length) {
+      const startIndex = letterEntries.value.length;
+      
+      for (let i = startIndex; i < newChars.length; i++) {
+        const char = newChars[i];
+        const newEntry = createEntry(char);
+        letterEntries.value.push(newEntry);
         
         nextTick(() => {
           const element = letterRefs.value.get(newEntry.id);
           if (element) {
             const textSize = getTextSize();
             animateLetterIn(element, textSize);
-            addDecor(element, getLetterColor(index), textSize);
+            addDecor(element, getColorDataForDecor(char), textSize);
           }
         });
       }
-    });
-
-    letterEntries.value = nextEntries;
+    }
   },
   { immediate: true }
 );
