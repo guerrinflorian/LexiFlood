@@ -65,7 +65,7 @@ const LETTER_POINTS: Record<string, number> = {
 
 const MULTIPLIER_BASE = 1;
 const MULTIPLIER_MIN = 0.75;
-const MULTIPLIER_MAX = 5;
+const MULTIPLIER_MAX = 4;
 
 const STANDARD_ROUND_DURATION_MS = 130_000;
 const EXTENDED_ROUND_DURATION_MS = 170_000;
@@ -120,7 +120,7 @@ const getMultiplierDelta = (length: number) => {
     return -0.5;
   }
   if (length === 2) {
-    return -0.25;
+    return -0.3;
   }
   if (length === 3) {
     return -0.15;
@@ -132,16 +132,19 @@ const getMultiplierDelta = (length: number) => {
     return 0.05;
   }
   if (length === 6) {
-    return 0.2;
+    return 0.15;
   }
   if (length === 7) {
-    return 0.5;
+    return 0.2;
   }
   if (length === 8) {
-    return 0.75;
+    return 0.25;
   }
-  if (length > 8) {
-    return 1;
+  if (length === 9) {
+    return 0.5;
+  }
+  if (length >= 10) {
+    return 0.75;
   }
   return 0;
 };
