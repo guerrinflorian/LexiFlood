@@ -11,7 +11,7 @@ const PLAYER_NAME_STORAGE_KEY = 'lexiflood_player_name';
 const DEFAULT_PLAYER_NAME = 'LexiHero';
 const MULTIPLIER_BASE = 1;
 const MULTIPLIER_MIN = 0.75;
-const MULTIPLIER_MAX = 5;
+const MULTIPLIER_MAX = 4;
 
 type Slot = {
   id: number;
